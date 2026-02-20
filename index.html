@@ -17,7 +17,7 @@
 
         #map { width: 100%; height: calc(100% - 60px); position: relative; }
 
-        /* 필터 컨트롤 영역 */
+        /* 필터 컨트롤 레이어 */
         .filter-container {
             position: absolute; top: 15px; left: 15px; z-index: 5;
             display: flex; flex-direction: column; gap: 10px;
@@ -38,9 +38,19 @@
         .filter-btn:hover { background: #f8f9fa; }
         .filter-btn.active { background: #3498db; color: white; border-color: #2980b9; }
 
-        .info-content { padding: 12px; font-size: 13px; line-height: 1.6; min-width: 250px; }
-        .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 10px; padding-bottom: 5px; color: #2c3e50; font-size: 15px; }
-        .info-item { display: flex; justify-content: space-between; margin-bottom: 3px; border-bottom: 1px dotted #eee; }
+        /* 네모 크기(인포윈도우) 스타일 수정 */
+        .info-content { 
+            padding: 15px; /* 패딩 증가 */
+            font-size: 14px; /* 글자 크기 증가 */
+            line-height: 1.6; 
+            min-width: 280px; /* 최소 너비 증가 (더 넓게) */
+        }
+        .info-title { 
+            font-weight: bold; border-bottom: 2px solid #3498db; 
+            margin-bottom: 10px; padding-bottom: 8px; color: #2c3e50; 
+            font-size: 16px; /* 제목 글자 크기 증가 */
+        }
+        .info-item { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px dotted #eee; padding-bottom: 3px; }
         .info-label { color: #7f8c8d; font-weight: bold; margin-right: 15px; white-space: nowrap; }
         .info-value { color: #2c3e50; text-align: right; word-break: break-all; }
     </style>
@@ -55,6 +65,7 @@
         <div class="filter-container">
             <div class="filter-group">
                 <div class="filter-label">에너지 종류</div>
+                <button class="filter-btn active" id="btn-all" onclick="setCategory('all')">전체</button>
                 <button class="filter-btn" id="btn-solar" onclick="setCategory('solar')">☀️ 태양광</button>
                 <button class="filter-btn" id="btn-wind" onclick="setCategory('wind')">🌬️ 풍력</button>
                 <button class="filter-btn" id="btn-ess" onclick="setCategory('ess')">🔋 ESS</button>
@@ -65,11 +76,7 @@
                 <button class="filter-btn active" onclick="setRegion('all', this)">전국</button>
                 <button class="filter-btn" onclick="setRegion('경북', this)">경북</button>
                 <button class="filter-btn" onclick="setRegion('경남', this)">경남</button>
-                <button class="filter-btn" onclick="setRegion('강원', this)">강원</button>
-                <button class="filter-btn" onclick="setRegion('충북', this)">충북</button>
                 <button class="filter-btn" onclick="setRegion('충남', this)">충남</button>
-                <button class="filter-btn" onclick="setRegion('전북', this)">전북</button>
-                <button class="filter-btn" onclick="setRegion('전남', this)">전남</button>
                 <button class="filter-btn" onclick="setRegion('제주', this)">제주</button>
                 </div>
         </div>
@@ -78,8 +85,8 @@
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f531c1f630564df9b868ad1cbecd9733&libraries=services&autoload=false"></script>
     
     <script>
-        // 현재 선택된 필터 상태 관리
-        var currentCategory = ""; // 초기엔 아무것도 선택 안 됨
+        // 현재 선택된 필터 상태 관리 (초기값: 전체)
+        var currentCategory = "all"; 
         var currentRegion = "all";
         var allMarkers = []; // 모든 마커를 담을 배열
 
@@ -135,12 +142,26 @@
             var zoomControl = new kakao.maps.ZoomControl();
             map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
 
-            var markerSize = new kakao.maps.Size(42, 42); 
-            var markerOffset = { offset: new kakao.maps.Point(21, 42) }; 
+            // --- 마커 이미지 설정 구간 (새로운 아이콘 적용) ---
+            var markerSize = new kakao.maps.Size(45, 45); 
+            var markerOffset = { offset: new kakao.maps.Point(22, 45) }; 
 
-            var solarImage = new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/2910/2910174.png', markerSize, markerOffset);
-            var windImage = new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/1454/1454641.png', markerSize, markerOffset);
-            var essImage = new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/3103/3103460.png', markerSize, markerOffset);
+            // ☀️ 태양광 아이콘 (새 이미지)
+            var solarImage = new kakao.maps.MarkerImage(
+                'https://cdn-icons-png.flaticon.com/512/2910/2910174.png', 
+                markerSize, markerOffset
+            );
+            // 🌬️ 풍력 터빈 아이콘 (새 이미지)
+            var windImage = new kakao.maps.MarkerImage(
+                'https://cdn-icons-png.flaticon.com/512/1454/1454641.png', 
+                markerSize, markerOffset
+            );
+            // 🔋 ESS 배터리 아이콘 (기존 유지)
+            var essImage = new kakao.maps.MarkerImage(
+                'https://cdn-icons-png.flaticon.com/512/3103/3103460.png', 
+                markerSize, markerOffset
+            );
+            // -----------------------------
 
             var geocoder = new kakao.maps.services.Geocoder();
 
@@ -156,8 +177,8 @@
                             title: item.title
                         });
 
-                        // ★ 초기 설정: 지도를 연결하지 않음 (화면에 안 보임)
-                        marker.setMap(null);
+                        // 초기 설정: 지도를 연결하여 처음에 다 보이게 함
+                        marker.setMap(map);
                         
                         // 마커 객체에 필터용 속성 추가
                         marker.category = item.type;
@@ -171,57 +192,4 @@
                             '<div class="info-item"><span class="info-label">최대주주</span><span class="info-value">' + item.shareholder + '</span></div>' +
                             '<div class="info-item"><span class="info-label">설비용량</span><span class="info-value">' + item.capacity + '</span></div>' +
                             '<div class="info-item"><span class="info-label">공사계획인가</span><span class="info-value">' + item.planPeriod + '</span></div>' +
-                            '<div class="info-item"><span class="info-label">사업준비기간</span><span class="info-value">' + item.prepPeriod + '</span></div>' +
-                            '</div>';
-
-                        var infowindow = new kakao.maps.InfoWindow({ content: content, removable: true });
-                        kakao.maps.event.addListener(marker, 'click', function() {
-                            infowindow.open(map, marker);
-                        });
-                    }
-                });
-            });
-        });
-
-        // 종류 선택 함수
-        function setCategory(cat) {
-            var btn = document.getElementById('btn-' + cat);
-            
-            // 이미 켜져있는걸 누르면 끄기, 아니면 켜기 (토글 기능)
-            if (currentCategory === cat) {
-                currentCategory = "";
-                btn.classList.remove('active');
-            } else {
-                // 기존 버튼들 끄기
-                document.querySelectorAll('.filter-group:first-child .filter-btn').forEach(b => b.classList.remove('active'));
-                currentCategory = cat;
-                btn.classList.add('active');
-            }
-            updateMap();
-        }
-
-        // 지역 선택 함수
-        function setRegion(reg, btn) {
-            document.querySelectorAll('.filter-group:last-child .filter-btn').forEach(b => b.classList.remove('active'));
-            currentRegion = reg;
-            btn.classList.add('active');
-            updateMap();
-        }
-
-        // 지도 업데이트 로직 (종류 AND 지역)
-        function updateMap() {
-            allMarkers.forEach(function(marker) {
-                var isCatMatch = (currentCategory === "" ? false : marker.category === currentCategory);
-                var isRegMatch = (currentRegion === "all" ? true : marker.region === currentRegion);
-
-                // 두 조건이 모두 맞을 때만 표시
-                if (isCatMatch && isRegMatch) {
-                    marker.setMap(map);
-                } else {
-                    marker.setMap(null);
-                }
-            });
-        }
-    </script>
-</body>
-</html>
+                            '<div class="info-item">
