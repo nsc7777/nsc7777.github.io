@@ -32,11 +32,10 @@
         .type-group { display: flex; gap: 4px; }
         .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
 
-        /* 필터 버튼 스타일: 파란색(#3498db)이 활성화 상태 */
         .filter-btn { padding: 6px 10px; border: 1px solid #ddd; background: white; color: #333; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: all 0.2s; white-space: nowrap; }
         .filter-btn.active { background: #3498db !important; color: white !important; border-color: #2980b9; }
 
-        #chart-group { width: 220px; height: 320px; background: white; }
+        #chart-group { width: 220px; height: 380px; background: white; }
         .total-label { font-size: 12px; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 5px; }
 
         .info-content { padding: 12px; font-size: 13px; line-height: 1.5; min-width: 280px; }
@@ -75,7 +74,6 @@
             <div class="filter-group">
                 <div class="filter-label">에너지 종류</div>
                 <div class="type-group" id="type-btns">
-                    <button class="filter-btn" id="btn-type-all" onclick="toggleAll('type')">전체</button>
                     <button class="filter-btn" data-val="solar" onclick="toggleFilter('type', 'solar', this)">🔴 태양광</button>
                     <button class="filter-btn" data-val="wind" onclick="toggleFilter('type', 'wind', this)">🔵 풍력</button>
                     <button class="filter-btn" data-val="ess" onclick="toggleFilter('type', 'ess', this)">🟢 ESS</button>
@@ -86,7 +84,6 @@
                 <div class="filter-group">
                     <div class="filter-label">지역 선택</div>
                     <div class="region-group" id="region-btns">
-                        <button class="filter-btn" id="btn-reg-all" onclick="toggleAll('region')">전국</button>
                         <button class="filter-btn" data-val="경기" onclick="toggleFilter('region', '경기', this)">경기</button>
                         <button class="filter-btn" data-val="강원" onclick="toggleFilter('region', '강원', this)">강원</button>
                         <button class="filter-btn" data-val="경북" onclick="toggleFilter('region', '경북', this)">경북</button>
@@ -110,11 +107,8 @@
     <script>
         var typeList = ['solar', 'wind', 'ess'];
         var regionList = ['경기', '강원', '경북', '경남', '충북', '충남', '전북', '전남', '제주'];
-        
-        // ⭐ 초기 상태는 빈 배열 (image_c300fe.png 상태)
         var activeTypes = [];
         var activeRegions = [];
-        
         var allMarkers = [];
         var map, clusterer, myChart, geocoder;
         var isDistrictOn = false;
@@ -171,7 +165,6 @@
             });
         });
 
-        // 📊 용량 합계 로직 (하나만 선택해도 필터링)
         function updateChart() {
             var totals = { solar: 0, wind: 0, ess: 0 };
             var searchTerm = document.getElementById('searchInput').value.trim();
@@ -195,7 +188,6 @@
             myChart.update();
         }
 
-        // 🗺️ 지도 마커 업데이트
         function updateMap() {
             clusterer.clear();
             var searchTerm = document.getElementById('searchInput').value.trim();
@@ -238,59 +230,18 @@
             updateChart();
         }
 
-        // ⭐ [수정] 즉각적인 클릭 반응 보장 (one click)
         function toggleFilter(filterType, value, btn) {
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
             var index = activeArray.indexOf(value);
             
             if (index > -1) {
-                // 이미 존재하면 제거 (흰색으로)
                 activeArray.splice(index, 1);
                 btn.classList.remove('active');
             } else {
-                // 존재하지 않으면 추가 (파란색으로)
                 activeArray.push(value);
                 btn.classList.add('active');
             }
-            updateAllButtonState(filterType);
             updateMap();
-        }
-
-        // ⭐ [수정] 전체/전국 토글 즉각 반응
-        function toggleAll(filterType) {
-            var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
-            var fullList = (filterType === 'type') ? typeList : regionList;
-            var containerId = (filterType === 'type' ? '#type-btns' : '#region-btns');
-            
-            // 현재 상태에 따라 모두 켜거나 모두 끔
-            if (activeArray.length === fullList.length) {
-                if (filterType === 'type') activeTypes = []; else activeRegions = [];
-            } else {
-                if (filterType === 'type') activeTypes = [...typeList]; else activeRegions = [...regionList];
-            }
-            
-            // UI 버튼들 상태 즉시 동기화
-            document.querySelectorAll(containerId + ' .filter-btn').forEach(b => {
-                var val = b.getAttribute('data-val');
-                var currentActiveArray = (filterType === 'type' ? activeTypes : activeRegions);
-                
-                if(!val) { // '전체/전국' 버튼
-                    if(currentActiveArray.length === fullList.length) b.classList.add('active');
-                    else b.classList.remove('active');
-                } else {
-                    if(currentActiveArray.indexOf(val) > -1) b.classList.add('active');
-                    else b.classList.remove('active');
-                }
-            });
-            updateMap();
-        }
-
-        function updateAllButtonState(filterType) {
-            var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
-            var fullList = (filterType === 'type') ? typeList : regionList;
-            var btnId = (filterType === 'type' ? 'btn-type-all' : 'btn-reg-all');
-            if (activeArray.length === fullList.length && fullList.length > 0) document.getElementById(btnId).classList.add('active');
-            else document.getElementById(btnId).classList.remove('active');
         }
 
         function initChart() {
