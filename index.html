@@ -37,13 +37,9 @@
             transition: all 0.2s; white-space: nowrap;
         }
         .filter-btn:hover { background: #f8f9fa; }
-        /* 활성화된 버튼 색상 */
         .filter-btn.active { background: #3498db; color: white; border-color: #2980b9; }
         
-        /* 기능성 버튼 스타일 */
         .all-btn { background: #f1f2f6; border-color: #ced4da; }
-        .clear-btn { color: #e74c3c; border-color: #fab1a0; }
-        .clear-btn:hover { background: #ff7675; color: white; }
 
         .info-content { padding: 15px; font-size: 14px; line-height: 1.6; min-width: 280px; }
         .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 10px; padding-bottom: 8px; color: #2c3e50; font-size: 16px; }
@@ -61,30 +57,28 @@
     <div id="map">
         <div class="filter-container">
             <div class="filter-group">
-                <div class="filter-label">에너지 종류 (다중)</div>
-                <div class="type-group">
-                    <button class="filter-btn all-btn active" id="btn-type-all" onclick="selectAll('type')">전체</button>
-                    <button class="filter-btn active" id="btn-solar" onclick="toggleFilter('type', 'solar', this)">🔴 태양광</button>
-                    <button class="filter-btn active" id="btn-wind" onclick="toggleFilter('type', 'wind', this)">🔵 풍력</button>
-                    <button class="filter-btn active" id="btn-ess" onclick="toggleFilter('type', 'ess', this)">🟢 ESS</button>
-                    <button class="filter-btn clear-btn" onclick="clearSelection('type')">해제</button>
+                <div class="filter-label">에너지 종류</div>
+                <div class="type-group" id="type-btns">
+                    <button class="filter-btn all-btn active" id="btn-type-all" onclick="toggleAll('type')">전체</button>
+                    <button class="filter-btn active" data-val="solar" onclick="toggleFilter('type', 'solar', this)">🔴 태양광</button>
+                    <button class="filter-btn active" data-val="wind" onclick="toggleFilter('type', 'wind', this)">🔵 풍력</button>
+                    <button class="filter-btn active" data-val="ess" onclick="toggleFilter('type', 'ess', this)">🟢 ESS</button>
                 </div>
             </div>
             
             <div class="filter-group">
-                <div class="filter-label">지역 선택 (다중)</div>
+                <div class="filter-label">지역 선택</div>
                 <div class="region-group" id="region-btns">
-                    <button class="filter-btn all-btn active" id="btn-reg-all" onclick="selectAll('region')">전국</button>
-                    <button class="filter-btn active" data-reg="경기" onclick="toggleFilter('region', '경기', this)">경기</button>
-                    <button class="filter-btn active" data-reg="강원" onclick="toggleFilter('region', '강원', this)">강원</button>
-                    <button class="filter-btn active" data-reg="경북" onclick="toggleFilter('region', '경북', this)">경북</button>
-                    <button class="filter-btn active" data-reg="경남" onclick="toggleFilter('region', '경남', this)">경남</button>
-                    <button class="filter-btn active" data-reg="충북" onclick="toggleFilter('region', '충북', this)">충북</button>
-                    <button class="filter-btn active" data-reg="충남" onclick="toggleFilter('region', '충남', this)">충남</button>
-                    <button class="filter-btn active" data-reg="전북" onclick="toggleFilter('region', '전북', this)">전북</button>
-                    <button class="filter-btn active" data-reg="전남" onclick="toggleFilter('region', '전남', this)">전남</button>
-                    <button class="filter-btn active" data-reg="제주" onclick="toggleFilter('region', '제주', this)">제주</button>
-                    <button class="filter-btn clear-btn" onclick="clearSelection('region')">해제</button>
+                    <button class="filter-btn all-btn active" id="btn-reg-all" onclick="toggleAll('region')">전국</button>
+                    <button class="filter-btn active" data-val="경기" onclick="toggleFilter('region', '경기', this)">경기</button>
+                    <button class="filter-btn active" data-val="강원" onclick="toggleFilter('region', '강원', this)">강원</button>
+                    <button class="filter-btn active" data-val="경북" onclick="toggleFilter('region', '경북', this)">경북</button>
+                    <button class="filter-btn active" data-val="경남" onclick="toggleFilter('region', '경남', this)">경남</button>
+                    <button class="filter-btn active" data-val="충북" onclick="toggleFilter('region', '충북', this)">충북</button>
+                    <button class="filter-btn active" data-val="충남" onclick="toggleFilter('region', '충남', this)">충남</button>
+                    <button class="filter-btn active" data-val="전북" onclick="toggleFilter('region', '전북', this)">전북</button>
+                    <button class="filter-btn active" data-val="전남" onclick="toggleFilter('region', '전남', this)">전남</button>
+                    <button class="filter-btn active" data-val="제주" onclick="toggleFilter('region', '제주', this)">제주</button>
                 </div>
             </div>
         </div>
@@ -93,15 +87,48 @@
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f531c1f630564df9b868ad1cbecd9733&libraries=services&autoload=false"></script>
     
     <script>
-        // 현재 선택된 필터들을 담는 배열 (초기값은 모두 선택 상태)
-        var activeTypes = ['solar', 'wind', 'ess'];
-        var activeRegions = ['경기', '강원', '경북', '경남', '충북', '충남', '전북', '전남', '제주'];
+        var typeList = ['solar', 'wind', 'ess'];
+        var regionList = ['경기', '강원', '경북', '경남', '충북', '충남', '전북', '전남', '제주'];
+
+        var activeTypes = [...typeList];
+        var activeRegions = [...regionList];
         var allMarkers = [];
 
+        // 사용자 제공 데이터 반영
         var positions = [
-            { title: '영덕 솔발산풍력', type: 'wind', region: '경북', address: '경상북도 영덕군 남정면 사암리 산13번지', owner: '(주)대산풍력', shareholder: '(주)대성에스지엠', capacity: '22.5 MW', planPeriod: '2028년 7월', prepPeriod: '2030년 7월' },
-            { title: '홍성 빛나래솔라 태양광', type: 'solar', region: '충남', address: '충남 홍성군 갈산면 기산리 544번지', owner: '(주)홍성빛나래솔라', shareholder: '한국투자증권(주)', capacity: '53.24 MW', planPeriod: '2030년 12월', prepPeriod: '2031년 12월' },
-            { title: '제주 가시리 BESS', type: 'ess', region: '제주', address: '제주특별자치도 서귀포시 표선면 가시리 산47번지', owner: '에스케이이터닉스(주)', shareholder: '에스케이이터닉스(주)', capacity: '최대 방전용량 40MW, PCS 44MW', planPeriod: '2026년 10월', prepPeriod: '2026년 12월' }
+            {
+                title: '영덕 솔발산풍력',
+                type: 'wind',
+                region: '경북',
+                address: '경상북도 영덕군 남정면 사암리 산13번지', 
+                owner: '(주)대산풍력',
+                shareholder: '(주)대성에스지엠',
+                capacity: '22.5 MW',
+                planPeriod: '2028년 7월',
+                prepPeriod: '2030년 7월'
+            },
+            {
+                title: '홍성 빛나래솔라 태양광',
+                type: 'solar',
+                region: '충남',
+                address: '충남 홍성군 갈산면 기산리 544번지',
+                owner: '(주)홍성빛나래솔라',
+                shareholder: '한국투자증권(주)',
+                capacity: '53.24 MW',
+                planPeriod: '2030년 12월',
+                prepPeriod: '2031년 12월'
+            },
+            {
+                title: '제주 가시리 BESS',
+                type: 'ess',
+                region: '제주',
+                address: '제주특별자치도 서귀포시 표선면 가시리 산47번지',
+                owner: '에스케이이터닉스(주)',
+                shareholder: '에스케이이터닉스(주)',
+                capacity: '최대 방전용량 40MW, PCS 44MW',
+                planPeriod: '2026년 10월',
+                prepPeriod: '2026년 12월'
+            }
         ];
 
         var map;
@@ -111,12 +138,20 @@
             var options = { center: new kakao.maps.LatLng(36.5, 127.8), level: 11 };
             map = new kakao.maps.Map(container, options);
             
-            var markerSize = new kakao.maps.Size(30, 30);
-            var markerOffset = { offset: new kakao.maps.Point(15, 30) };
+            // 컨트롤 추가
+            var mapTypeControl = new kakao.maps.MapTypeControl();
+            map.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
+            var zoomControl = new kakao.maps.ZoomControl();
+            map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
 
-            var solarImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', markerSize, markerOffset);
-            var windImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/blue-dot.png', markerSize, markerOffset);
-            var essImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/green-dot.png', markerSize, markerOffset);
+            var markerSize = new kakao.maps.Size(32, 32);
+            var markerOffset = { offset: new kakao.maps.Point(16, 32) };
+
+            // 색상별 마커 설정 (안정적인 이미지 경로)
+            var solarImage = new kakao.maps.MarkerImage('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png', markerSize, markerOffset);
+            var windImage = new kakao.maps.MarkerImage('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_blue.png', markerSize, markerOffset);
+            // ESS는 기본 또는 녹색 계열을 위한 별도 마커 사용 가능
+            var essImage = new kakao.maps.MarkerImage('https://t1.daumcdn.net/localimg/localimages/07/2011/marker_green_L.png', new kakao.maps.Size(24, 35), new kakao.maps.Point(12, 35));
 
             var geocoder = new kakao.maps.services.Geocoder();
 
@@ -146,70 +181,54 @@
             });
         });
 
-        // 다중 선택 토글 함수
         function toggleFilter(filterType, value, btn) {
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
             var index = activeArray.indexOf(value);
 
             if (index > -1) {
-                // 이미 있으면 제거
                 activeArray.splice(index, 1);
                 btn.classList.remove('active');
             } else {
-                // 없으면 추가
                 activeArray.push(value);
                 btn.classList.add('active');
             }
-
-            // '전체/전국' 버튼 상태 관리
-            checkAllButtonState(filterType);
+            updateAllButtonState(filterType);
             updateMap();
         }
 
-        // 전체 선택 함수
-        function selectAll(filterType) {
-            if (filterType === 'type') {
-                activeTypes = ['solar', 'wind', 'ess'];
-                document.querySelectorAll('.type-group .filter-btn:not(.clear-btn)').forEach(b => b.classList.add('active'));
+        function toggleAll(filterType) {
+            var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
+            var fullList = (filterType === 'type') ? typeList : regionList;
+            var groupSelector = (filterType === 'type') ? '#type-btns .filter-btn:not(.all-btn)' : '#region-btns .filter-btn:not(.all-btn)';
+            var allBtn = document.getElementById(filterType === 'type' ? 'btn-type-all' : 'btn-reg-all');
+
+            if (activeArray.length === fullList.length) {
+                if (filterType === 'type') activeTypes.length = 0;
+                else activeRegions.length = 0;
+                document.querySelectorAll(groupSelector).forEach(b => b.classList.remove('active'));
+                allBtn.classList.remove('active');
             } else {
-                activeRegions = ['경기', '강원', '경북', '경남', '충북', '충남', '전북', '전남', '제주'];
-                document.querySelectorAll('.region-group .filter-btn:not(.clear-btn)').forEach(b => b.classList.add('active'));
+                if (filterType === 'type') activeTypes = [...fullList];
+                else activeRegions = [...fullList];
+                document.querySelectorAll(groupSelector).forEach(b => b.classList.add('active'));
+                allBtn.classList.add('active');
             }
             updateMap();
         }
 
-        // 전체 해제 함수
-        function clearSelection(filterType) {
-            if (filterType === 'type') {
-                activeTypes = [];
-                document.querySelectorAll('.type-group .filter-btn:not(.clear-btn)').forEach(b => b.classList.remove('active'));
-            } else {
-                activeRegions = [];
-                document.querySelectorAll('.region-group .filter-btn:not(.clear-btn)').forEach(b => b.classList.remove('active'));
-            }
-            updateMap();
+        function updateAllButtonState(filterType) {
+            var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
+            var fullList = (filterType === 'type') ? typeList : regionList;
+            var allBtn = document.getElementById(filterType === 'type' ? 'btn-type-all' : 'btn-reg-all');
+
+            if (activeArray.length === fullList.length) allBtn.classList.add('active');
+            else allBtn.classList.remove('active');
         }
 
-        // 개별 버튼 클릭 시 '전체' 버튼의 활성화 여부 체크
-        function checkAllButtonState(filterType) {
-            if (filterType === 'type') {
-                var btnAll = document.getElementById('btn-type-all');
-                if (activeTypes.length === 3) btnAll.classList.add('active');
-                else btnAll.classList.remove('active');
-            } else {
-                var btnRegAll = document.getElementById('btn-reg-all');
-                if (activeRegions.length === 9) btnRegAll.classList.add('active');
-                else btnRegAll.classList.remove('active');
-            }
-        }
-
-        // 지도 업데이트 로직 (다중 조건 포함 여부 확인)
         function updateMap() {
             allMarkers.forEach(function(marker) {
-                // 마커의 타입과 지역이 활성화 배열에 모두 포함되어 있는지 확인
                 var isTypeActive = activeTypes.indexOf(marker.category) > -1;
                 var isRegionActive = activeRegions.indexOf(marker.region) > -1;
-
                 if (isTypeActive && isRegionActive) marker.setMap(map);
                 else marker.setMap(null);
             });
