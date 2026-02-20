@@ -1,42 +1,27 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>카카오맵</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-        }
-        html, body {
-            width: 100%;
-            height: 100%;
-        }
-        #map {
-            width: 100%;
-            height: 100%;
-        }
-    </style>
-</head>
-<body>
-    <div id="map"></div>
-    
-    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f531c1f630564df9b868ad1cbecd9733"></script>
-    
-    <script>
-        // 스크립트 로드 확인
-        if (typeof kakao !== 'undefined') {
-            var container = document.getElementById('map');
-            var options = {
-                center: new kakao.maps.LatLng(37.5665, 126.9780),
-                level: 3
-            };
-            var map = new kakao.maps.Map(container, options);
-            console.log('지도 로드 성공!');
-        } else {
-            console.error('카카오맵 API 로드 실패');
-            alert('카카오맵을 불러올 수 없습니다.');
-        }
-    </script>
-</body>
-</html>
+# 🗺️ My Kakao Map Project
+
+카카오맵 API를 사용한 인터랙티브 지도 웹사이트
+
+## 🔗 Live Demo
+👉 [https://nsc7777.github.io](https://nsc7777.github.io)
+
+---
+
+## 📖 프로젝트 소개
+이 프로젝트는 카카오맵 JavaScript API를 활용하여 웹 브라우저에서 지도를 표시하는 웹사이트입니다.
+
+## ✨ 기능
+- [x] 지도 표시
+- [x] 마커 표시
+- [ ] 검색 기능 (예정)
+- [ ] 길찾기 (예정)
+
+## 🛠️ 기술 스택
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
+![Kakao](https://img.shields.io/badge/Kakao-FFCD00?style=flat-square&logo=kakao&logoColor=black)
+
+## 🚀 로컬 실행 방법
+1. 저장소 클론
+   ```bash
+   git clone https://github.com/nsc7777/nsc7777.github.io.git
