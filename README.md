@@ -35,7 +35,7 @@
             console.log('지도 로드 성공!');
         } else {
             console.error('카카오맵 API 로드 실패');
-            alert('카카오맵을 불러올 수 없습니다. 개발자 도구(F12)에서 에러를 확인하세요.');
+            alert('카카오맵을 불러올 수 없습니다.');
         }
     </script>
 </body>
