@@ -21,8 +21,6 @@
         .search-input { padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 200px; }
         .search-btn { background: #34495e; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
         .addr-btn { background: #27ae60; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-
-        /* 지적편집도 버튼 전용 */
         .dist-btn { background: #e67e22; color: white; border: none; width: 100%; margin-top: 5px; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
         .dist-btn.on { background: #d35400; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
 
@@ -36,7 +34,14 @@
         #chart-group { width: 220px; height: 320px; background: white; }
         .total-label { font-size: 12px; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 5px; }
 
-        /* 주소 검색 결과 말풍선 (image_b89017.png 스타일) */
+        /* 복구된 인포윈도우 스타일 */
+        .info-content { padding: 12px; font-size: 13px; line-height: 1.5; min-width: 280px; }
+        .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 8px; padding-bottom: 5px; color: #2c3e50; font-size: 14px; }
+        .info-item { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dotted #eee; padding-bottom: 2px; }
+        .info-label { color: #7f8c8d; font-weight: bold; margin-right: 12px; white-space: nowrap; }
+        .info-value { color: #2c3e50; text-align: right; word-break: break-all; font-size: 11px; }
+
+        /* 주소 검색 말풍선 */
         .addr-result-window { padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border: 1px solid #ccc; min-width: 200px; }
         .addr-result-title { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 10px; display: block; }
         .addr-result-links { display: flex; gap: 10px; border-top: 1px solid #eee; padding-top: 8px; }
@@ -113,8 +118,7 @@
             var options = { center: new kakao.maps.LatLng(36.5, 127.8), level: 11 };
             map = new kakao.maps.Map(container, options);
 
-            var mapTypeControl = new kakao.maps.MapTypeControl();
-            map.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
+            map.addControl(new kakao.maps.MapTypeControl(), kakao.maps.ControlPosition.TOPRIGHT);
             map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
 
             geocoder = new kakao.maps.services.Geocoder();
@@ -141,11 +145,17 @@
                     var capMatch = String(item.capacity).match(/(\d+(\.\d+)?)/);
                     marker.capValue = capMatch ? parseFloat(capMatch[1]) : 0;
 
-                    var content = `<div class="info-content"><div class="info-title">${item.title}</div>
-                        <div class="info-item"><span class="info-label">사업주체</span><span class="info-value">${item.owner || '-'}</span></div>
-                        <div class="info-item"><span class="info-label">주소</span><span class="info-value">${item.address || '-'}</span></div>
-                        <div class="info-item"><span class="info-label">설비용량</span><span class="info-value">${item.capacity || '-'}</span></div>
-                        <div class="info-item"><span class="info-label">준비기간</span><span class="info-value">${item.prepPeriod || '-'}</span></div></div>`;
+                    // ★ 상세 정보창 항목 복구
+                    var content = `
+                        <div class="info-content">
+                            <div class="info-title">${item.title}</div>
+                            <div class="info-item"><span class="info-label">사업주체</span><span class="info-value">${item.owner || '-'}</span></div>
+                            <div class="info-item"><span class="info-label">최대주주</span><span class="info-value">${item.shareholder || '-'}</span></div>
+                            <div class="info-item"><span class="info-label">주소</span><span class="info-value">${item.address || '-'}</span></div>
+                            <div class="info-item"><span class="info-label">설비용량</span><span class="info-value">${item.capacity || '-'}</span></div>
+                            <div class="info-item"><span class="info-label">공사계획인가</span><span class="info-value">${item.planPeriod || '-'}</span></div>
+                            <div class="info-item"><span class="info-label">사업준비기간</span><span class="info-value">${item.prepPeriod || '-'}</span></div>
+                        </div>`;
                     
                     var infowindow = new kakao.maps.InfoWindow({ content: content, removable: true });
                     kakao.maps.event.addListener(marker, 'click', () => infowindow.open(map, marker));
@@ -157,17 +167,14 @@
             });
         });
 
-        // 지적편집도 토글
         function toggleDistrict() {
             var btn = document.getElementById('distBtn');
             if (!isDistrictOn) {
                 map.addOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
-                btn.classList.add('on');
-                btn.innerText = "🗺️ 지적편집도 끄기";
+                btn.classList.add('on'); btn.innerText = "🗺️ 지적편집도 끄기";
             } else {
                 map.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
-                btn.classList.remove('on');
-                btn.innerText = "🗺️ 지적편집도 보기";
+                btn.classList.remove('on'); btn.innerText = "🗺️ 지적편집도 보기";
             }
             isDistrictOn = !isDistrictOn;
         }
@@ -206,13 +213,10 @@
             });
         }
 
-        // 수치 계산 로직 수정 (정확한 합산 보장)
         function updateChart() {
             var totals = { solar: 0, wind: 0, ess: 0 };
             allMarkers.forEach(function(marker) {
-                var isTypeActive = activeTypes.indexOf(marker.category) > -1;
-                var isRegionActive = activeRegions.indexOf(marker.region) > -1;
-                if (isTypeActive && isRegionActive) {
+                if (activeTypes.indexOf(marker.category) > -1 && activeRegions.indexOf(marker.region) > -1) {
                     totals[marker.category] += marker.capValue;
                 }
             });
@@ -239,7 +243,7 @@
             }
             document.querySelectorAll((filterType === 'type' ? '#type-btns' : '#region-btns') + ' .filter-btn').forEach(b => {
                 var val = b.getAttribute('data-val');
-                if(!val) { // 전체 버튼
+                if(!val) {
                     if(activeArray.length === fullList.length) b.classList.add('active');
                     else b.classList.remove('active');
                 } else {
@@ -262,11 +266,8 @@
             clusterer.clear();
             var visibleMarkers = [];
             allMarkers.forEach(function(marker) {
-                var isTypeActive = activeTypes.indexOf(marker.category) > -1;
-                var isRegionActive = activeRegions.indexOf(marker.region) > -1;
-                if (isTypeActive && isRegionActive) {
-                    marker.setMap(map);
-                    visibleMarkers.push(marker);
+                if (activeTypes.indexOf(marker.category) > -1 && activeRegions.indexOf(marker.region) > -1) {
+                    marker.setMap(map); visibleMarkers.push(marker);
                 } else marker.setMap(null);
             });
             clusterer.addMarkers(visibleMarkers);
