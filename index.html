@@ -32,7 +32,7 @@
         .type-group { display: flex; gap: 4px; }
         .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
 
-        /* 필터 버튼 (흰색 = 꺼짐 / 파란색 = 켜짐) */
+        /* 필터 버튼 스타일: 파란색(#3498db)이 활성화 상태 */
         .filter-btn { padding: 6px 10px; border: 1px solid #ddd; background: white; color: #333; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: all 0.2s; white-space: nowrap; }
         .filter-btn.active { background: #3498db !important; color: white !important; border-color: #2980b9; }
 
@@ -111,7 +111,7 @@
         var typeList = ['solar', 'wind', 'ess'];
         var regionList = ['경기', '강원', '경북', '경남', '충북', '충남', '전북', '전남', '제주'];
         
-        // 초기에는 아무것도 선택되지 않은 빈 상태
+        // ⭐ 초기 상태는 빈 배열 (image_c300fe.png 상태)
         var activeTypes = [];
         var activeRegions = [];
         
@@ -171,19 +171,15 @@
             });
         });
 
-        // 📊 [핵심 수정] 용량 합계 로직: 하나라도 선택되면 필터링 시작
+        // 📊 용량 합계 로직 (하나만 선택해도 필터링)
         function updateChart() {
             var totals = { solar: 0, wind: 0, ess: 0 };
             var searchTerm = document.getElementById('searchInput').value.trim();
-
-            // 아무 필터도 활성화되지 않았으면 합계는 0
             var isAnyFilterActive = activeTypes.length > 0 || activeRegions.length > 0;
 
             allMarkers.forEach(function(marker) {
                 if (isAnyFilterActive) {
-                    // 에너지 종류: 비어있으면 해당 그룹은 '전체'로 간주, 채워져있으면 '포함' 확인
                     var isTypeMatch = activeTypes.length === 0 || activeTypes.indexOf(marker.category) > -1;
-                    // 지역 선택: 비어있으면 해당 그룹은 '전체'로 간주, 채워져있으면 '포함' 확인
                     var isRegionMatch = activeRegions.length === 0 || activeRegions.indexOf(marker.region) > -1;
                     var isSearchMatch = !searchTerm || marker.getTitle().includes(searchTerm) || (marker.owner && marker.owner.includes(searchTerm));
 
@@ -199,14 +195,13 @@
             myChart.update();
         }
 
-        // 🗺️ [핵심 수정] 지도 업데이트 로직: 하나라도 선택되면 나타남
+        // 🗺️ 지도 마커 업데이트
         function updateMap() {
             clusterer.clear();
             var searchTerm = document.getElementById('searchInput').value.trim();
             var visibleMarkers = [];
             var listHTML = '';
             var bounds = new kakao.maps.LatLngBounds();
-
             var isAnyFilterActive = activeTypes.length > 0 || activeRegions.length > 0;
 
             allMarkers.forEach(function(marker) {
@@ -227,7 +222,7 @@
                         marker.setMap(null);
                     }
                 } else {
-                    marker.setMap(null); // 아무 필터도 활성화되지 않았으면 모두 숨김
+                    marker.setMap(null); 
                 }
             });
 
@@ -243,14 +238,17 @@
             updateChart();
         }
 
+        // ⭐ [수정] 즉각적인 클릭 반응 보장 (one click)
         function toggleFilter(filterType, value, btn) {
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
             var index = activeArray.indexOf(value);
             
             if (index > -1) {
+                // 이미 존재하면 제거 (흰색으로)
                 activeArray.splice(index, 1);
                 btn.classList.remove('active');
             } else {
+                // 존재하지 않으면 추가 (파란색으로)
                 activeArray.push(value);
                 btn.classList.add('active');
             }
@@ -258,24 +256,29 @@
             updateMap();
         }
 
+        // ⭐ [수정] 전체/전국 토글 즉각 반응
         function toggleAll(filterType) {
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
             var fullList = (filterType === 'type') ? typeList : regionList;
             var containerId = (filterType === 'type' ? '#type-btns' : '#region-btns');
             
+            // 현재 상태에 따라 모두 켜거나 모두 끔
             if (activeArray.length === fullList.length) {
                 if (filterType === 'type') activeTypes = []; else activeRegions = [];
             } else {
                 if (filterType === 'type') activeTypes = [...typeList]; else activeRegions = [...regionList];
             }
             
+            // UI 버튼들 상태 즉시 동기화
             document.querySelectorAll(containerId + ' .filter-btn').forEach(b => {
                 var val = b.getAttribute('data-val');
+                var currentActiveArray = (filterType === 'type' ? activeTypes : activeRegions);
+                
                 if(!val) { // '전체/전국' 버튼
-                    if(activeArray.length === fullList.length && fullList.length > 0) b.classList.add('active');
+                    if(currentActiveArray.length === fullList.length) b.classList.add('active');
                     else b.classList.remove('active');
                 } else {
-                    if(activeArray.indexOf(val) > -1) b.classList.add('active');
+                    if(currentActiveArray.indexOf(val) > -1) b.classList.add('active');
                     else b.classList.remove('active');
                 }
             });
@@ -304,7 +307,6 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         }
-
         function toggleDistrict() {
             var btn = document.getElementById('distBtn');
             if (!isDistrictOn) {
@@ -316,7 +318,6 @@
             }
             isDistrictOn = !isDistrictOn;
         }
-
         function searchAddress() {
             var addr = document.getElementById('addressInput').value.trim();
             if (!addr) return;
@@ -335,14 +336,12 @@
                 }
             });
         }
-
         function focusMarker(idx) {
             var marker = allMarkers.find(m => m.idx === idx);
             map.setCenter(marker.getPosition());
             map.setLevel(4);
             marker.infowindow.open(map, marker);
         }
-
         function searchData() { updateMap(); }
     </script>
 </body>
