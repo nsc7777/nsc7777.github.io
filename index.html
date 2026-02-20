@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>발전사업허가 및 전력계통 현황 (보안)</title>
+    <title>발전사업허가 및 변전소 현황</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f531c1f630564df9b868ad1cbecd9733&libraries=services,clusterer,drawing"></script>
     <style>
@@ -27,22 +27,34 @@
         .filter-container { position: absolute; top: 15px; left: 15px; z-index: 5; display: flex; flex-direction: column; gap: 8px; }
         .filter-group { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); width: fit-content; }
         .filter-label { font-size: 11px; color: #7f8c8d; font-weight: bold; margin-bottom: 6px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+        
         .search-box { display: flex; gap: 5px; }
         .search-input { padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 200px; }
         .search-btn { background: #34495e; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
         #search-results { margin-top: 10px; max-height: 150px; overflow-y: auto; border-top: 2px solid #3498db; display: none; background: #fff; }
         .result-item { padding: 8px; border-bottom: 1px solid #eee; font-size: 11px; cursor: pointer; }
+        
         .dist-btn { background: #e67e22; color: white; border: none; width: 100%; margin-top: 5px; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
         .tool-row { display: flex; gap: 5px; margin-top: 5px; }
         .measure-btn { background: #95a5a6; color: white; border: none; flex: 1; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
         .measure-btn.active { background: #2c3e50; }
-        .filter-btn { padding: 6px 10px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+
+        .bottom-layout { display: flex; gap: 8px; align-items: flex-start; }
+        .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
+
+        .filter-btn { padding: 6px 10px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: all 0.2s; }
         .filter-btn.active { background: #3498db !important; color: white !important; }
+
         #chart-group { width: 220px; height: 320px; background: white; }
         .total-label { font-size: 12px; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 5px; }
-        #oim-layer { position: absolute; top: 15px; right: 15px; width: 450px; height: 500px; background: white; z-index: 1000; border-radius: 8px; display: none; flex-direction: column; border: 1px solid #ccc; }
-        .oim-header { background: #2c3e50; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
         .dotOverlay { position: relative; bottom: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px; padding: 5px; background: #fff; white-space: nowrap; }
+
+        /* 상세 정보창 스타일 */
+        .info-content { padding: 12px; font-size: 13px; line-height: 1.5; min-width: 280px; }
+        .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 8px; padding-bottom: 5px; color: #2c3e50; font-size: 14px; }
+        .info-item { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dotted #eee; padding-bottom: 2px; }
+        .info-label { color: #7f8c8d; font-weight: bold; margin-right: 12px; white-space: nowrap; }
+        .info-value { color: #2c3e50; text-align: right; word-break: break-all; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -58,11 +70,6 @@
     <div id="header"><h1>🌱 발전사업허가 및 변전소 현황</h1></div>
 
     <div id="map">
-        <div id="oim-layer">
-            <div class="oim-header"><span>🔌 전력망 레이어 (OpenInfraMap)</span><button onclick="toggleOIM()" style="background:#e74c3c; color:white; border:none; padding:2px 5px; border-radius:4px; cursor:pointer;">닫기</button></div>
-            <iframe src="https://openinframap.org/#12/37.269/127.223" style="width:100%; height:100%; border:none;"></iframe>
-        </div>
-
         <div class="filter-container">
             <div class="filter-group">
                 <div class="filter-label">검색 및 도구</div>
@@ -72,7 +79,6 @@
                 </div>
                 <div id="search-results"></div>
                 <button class="dist-btn" onclick="toggleDistrict()">🗺️ 지적편집도 보기</button>
-                <button class="dist-btn" onclick="toggleOIM()" style="background: #2980b9;">⚡ 전력망 지도 보기</button>
                 <div class="tool-row">
                     <button id="rulerBtn" class="measure-btn" onclick="toggleTool('polyline')">📏 거리재기</button>
                     <button id="circleBtn" class="measure-btn" onclick="toggleTool('circle')">⭕ 반경표시</button>
@@ -89,10 +95,27 @@
                 </div>
             </div>
 
-            <div class="filter-group" id="chart-group">
-                <div class="filter-label">에너지원별 용량 (MW)</div>
-                <div id="totalSumLabel" class="total-label">총 합계: 0.00 MW</div>
-                <canvas id="capacityChart"></canvas>
+            <div class="bottom-layout">
+                <div class="filter-group">
+                    <div class="filter-label">지역 선택</div>
+                    <div class="region-group" id="region-btns">
+                        <button class="filter-btn" data-val="경기" onclick="toggleFilter('region', '경기', this)">경기</button>
+                        <button class="filter-btn" data-val="강원" onclick="toggleFilter('region', '강원', this)">강원</button>
+                        <button class="filter-btn" data-val="경북" onclick="toggleFilter('region', '경북', this)">경북</button>
+                        <button class="filter-btn" data-val="경남" onclick="toggleFilter('region', '경남', this)">경남</button>
+                        <button class="filter-btn" data-val="충북" onclick="toggleFilter('region', '충북', this)">충북</button>
+                        <button class="filter-btn" data-val="충남" onclick="toggleFilter('region', '충남', this)">충남</button>
+                        <button class="filter-btn" data-val="전북" onclick="toggleFilter('region', '전북', this)">전북</button>
+                        <button class="filter-btn" data-val="전남" onclick="toggleFilter('region', '전남', this)">전남</button>
+                        <button class="filter-btn" data-val="제주" onclick="toggleFilter('region', '제주', this)">제주</button>
+                    </div>
+                </div>
+
+                <div class="filter-group" id="chart-group">
+                    <div class="filter-label">에너지원별 용량 (MW)</div>
+                    <div id="totalSumLabel" class="total-label">총 합계: 0.00 MW</div>
+                    <canvas id="capacityChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -105,11 +128,6 @@
             if (input === correctPassword) {
                 document.getElementById('password-overlay').style.display = 'none';
             } else { alert("비밀번호가 일치하지 않습니다."); }
-        }
-
-        function toggleOIM() {
-            const layer = document.getElementById('oim-layer');
-            layer.style.display = (layer.style.display === 'none' || layer.style.display === '') ? 'flex' : 'none';
         }
 
         var activeTypes = [], activeRegions = [], allMarkers = [];
@@ -150,19 +168,32 @@
                     solar: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', new kakao.maps.Size(32,32)),
                     wind: new kakao.maps.MarkerImage('wind-farm_15840625.png', new kakao.maps.Size(32,32)),
                     ess: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/green-dot.png', new kakao.maps.Size(32,32)),
-                    // ⭐ 변전소 아이콘: 요청하신 노란색 ⚡번개 아이콘 적용
                     substation: new kakao.maps.MarkerImage('factory_4883014.png', new kakao.maps.Size(32, 32))
                 };
 
+                // 발전소 파싱
                 var genMarkers = genData.map(item => {
                     var m = new kakao.maps.Marker({ position: new kakao.maps.LatLng(item.lat, item.lng), image: imgs[item.type], title: item.title });
                     m.category = item.type; m.region = item.region; m.owner = item.owner;
                     m.capValue = parseFloat(String(item.capacity).match(/(\d+(\.\d+)?)/)?.[1] || 0);
-                    var iw = new kakao.maps.InfoWindow({ content: `<div style="padding:10px; font-size:12px;"><b>${item.title}</b><br>사업주체: ${item.owner}<br>용량: ${item.capacity}</div>`, removable: true });
+                    
+                    var content = `<div class="info-content">
+                        <div class="info-title">${item.title}</div>
+                        <div class="info-item"><span class="info-label">사업주체</span><span class="info-value">${item.owner || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">최대주주</span><span class="info-value">${item.shareholder || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">주소</span><span class="info-value">${item.address || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">설비용량</span><span class="info-value">${item.capacity || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">공사계획인가</span><span class="info-value">${item.planPeriod || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">사업준비기간</span><span class="info-value">${item.prepPeriod || '-'}</span></div>
+                    </div>`;
+                    
+                    var iw = new kakao.maps.InfoWindow({ content: content, removable: true });
                     kakao.maps.event.addListener(m, 'click', () => iw.open(map, m));
                     return m;
                 });
 
+                // 변전소 파싱
+                var subMarkers = [];
                 if (subData.datasets) {
                     subData.datasets.forEach(ds => {
                         ds.data.allData.forEach(row => {
@@ -170,14 +201,16 @@
                             var lat = row.length === 5 ? row[2] : row[1];
                             var lng = row.length === 5 ? row[3] : row[2];
                             var m = new kakao.maps.Marker({ position: new kakao.maps.LatLng(lat, lng), image: imgs.substation, title: name });
-                            m.category = 'substation';
+                            m.category = 'substation'; m.region = '전국';
                             var iw = new kakao.maps.InfoWindow({ content: `<div style="padding:10px; font-size:12px;"><b>⚡ ${name} 변전소</b><br>전압: ${row.length === 5 ? row[4] : row[3]}kV</div>`, removable: true });
                             kakao.maps.event.addListener(m, 'click', () => iw.open(map, m));
-                            genMarkers.push(m);
+                            subMarkers.push(m);
                         });
                     });
                 }
-                allMarkers = genMarkers; updateMap();
+
+                allMarkers = [...genMarkers, ...subMarkers];
+                updateMap();
             });
         });
 
@@ -188,18 +221,29 @@
             btn.classList.toggle('active'); updateMap();
         }
 
+        // 📊 필터 로직: 종류와 지역이 모두 선택되었거나, 하나라도 선택된 상태일 때 작동
         function updateMap() {
             clusterer.clear();
             var search = document.getElementById('searchInput').value.trim();
             var visible = [];
-            var isAnyFilter = activeTypes.length > 0;
+            
+            // 종류나 지역 중 하나라도 선택되어 있어야 마커가 나타남 (초기 빈 화면 유지)
+            var isFilterActive = activeTypes.length > 0 || activeRegions.length > 0;
 
             allMarkers.forEach(m => {
-                var typeMatch = activeTypes.indexOf(m.category) > -1;
-                var searchMatch = !search || m.getTitle().includes(search);
-                if (isAnyFilter && typeMatch && searchMatch) {
+                var typeMatch = activeTypes.length === 0 || activeTypes.indexOf(m.category) > -1;
+                var regionMatch = activeRegions.length === 0 || activeRegions.indexOf(m.region) > -1;
+                
+                // 변전소는 '전국' 카테고리이므로 종류 필터만 맞으면 나타나게 설정
+                if (m.category === 'substation') regionMatch = activeTypes.indexOf('substation') > -1;
+
+                var searchMatch = !search || m.getTitle().includes(search) || (m.owner && m.owner.includes(search));
+
+                if (isFilterActive && typeMatch && regionMatch && searchMatch) {
                     m.setMap(map); visible.push(m);
-                } else m.setMap(null);
+                } else {
+                    m.setMap(null);
+                }
             });
             clusterer.addMarkers(visible); updateChart();
         }
