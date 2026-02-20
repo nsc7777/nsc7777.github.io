@@ -197,4 +197,55 @@
                             '<div class="info-item"><span class="info-label">최대주주</span><span class="info-value">' + item.shareholder + '</span></div>' +
                             '<div class="info-item"><span class="info-label">설비용량</span><span class="info-value">' + item.capacity + '</span></div>' +
                             '<div class="info-item"><span class="info-label">공사계획인가</span><span class="info-value">' + item.planPeriod + '</span></div>' +
-                            '<div class="info-item">
+                            '<div class="info-item"><span class="info-label">사업준비기간</span><span class="info-value">' + item.prepPeriod + '</span></div>' +
+                            '</div>';
+
+                        var infowindow = new kakao.maps.InfoWindow({ content: content, removable: true });
+                        kakao.maps.event.addListener(marker, 'click', function() {
+                            infowindow.open(map, marker);
+                        });
+                    }
+                });
+            });
+        });
+
+        // 종류 선택 함수 (수정됨)
+        function setCategory(cat) {
+            var btn = document.getElementById('btn-' + cat);
+            
+            // 기존 버튼들 끄기
+            document.querySelectorAll('.filter-group:first-child .filter-btn').forEach(b => b.classList.remove('active'));
+            
+            currentCategory = cat;
+            btn.classList.add('active');
+            
+            updateMap();
+        }
+
+        // 지역 선택 함수
+        function setRegion(reg, btn) {
+            document.querySelectorAll('.filter-group:last-child .filter-btn').forEach(b => b.classList.remove('active'));
+            currentRegion = reg;
+            btn.classList.add('active');
+            updateMap();
+        }
+
+        // 지도 업데이트 로직 (종류 AND 지역) - 수정됨
+        function updateMap() {
+            allMarkers.forEach(function(marker) {
+                // 종류 필터: 'all'이면 모두 통과, 아니면 타입 일치 여부 확인
+                var isCatMatch = (currentCategory === "all" ? true : marker.category === currentCategory);
+                // 지역 필터: 'all'이면 모두 통과, 아니면 지역 일치 여부 확인
+                var isRegMatch = (currentRegion === "all" ? true : marker.region === currentRegion);
+
+                // 두 조건이 모두 맞을 때만 표시
+                if (isCatMatch && isRegMatch) {
+                    marker.setMap(map);
+                } else {
+                    marker.setMap(null);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
