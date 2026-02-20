@@ -1,6 +1,5 @@
-# 🗺️ My Kakao Map Project
+# 🗺️ 신재생에너지 발전사업허가 취득 리스트
 
-카카오맵 API를 사용한 인터랙티브 지도 웹사이트
 
 ## 🔗 Live Demo
 👉 [https://nsc7777.github.io](https://nsc7777.github.io)
