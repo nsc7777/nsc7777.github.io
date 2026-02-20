@@ -21,7 +21,7 @@
         .pw-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; font-size: 16px; text-align: center; }
         .pw-btn { background: #3498db; color: white; border: none; width: 100%; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
 
-        /* 기존 대시보드 스타일 유지 */
+        /* 대시보드 레이아웃 */
         #header { width: 100%; height: 60px; background-color: #2c3e50; color: white; display: flex; align-items: center; justify-content: center; z-index: 10; position: relative; }
         #map { width: 100%; height: calc(100% - 60px); position: relative; }
         .filter-container { position: absolute; top: 15px; left: 15px; z-index: 5; display: flex; flex-direction: column; gap: 8px; }
@@ -40,7 +40,7 @@
         .filter-btn.active { background: #3498db !important; color: white !important; }
         #chart-group { width: 220px; height: 320px; background: white; }
         .total-label { font-size: 12px; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 5px; }
-        #oim-layer { position: absolute; top: 15px; right: 15px; width: 450px; height: 500px; background: white; z-index: 1000; border-radius: 8px; display: none; flex-direction: column; overflow: hidden; border: 1px solid #ccc; }
+        #oim-layer { position: absolute; top: 15px; right: 15px; width: 450px; height: 500px; background: white; z-index: 1000; border-radius: 8px; display: none; flex-direction: column; border: 1px solid #ccc; }
         .oim-header { background: #2c3e50; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
         .dotOverlay { position: relative; bottom: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px; padding: 5px; background: #fff; white-space: nowrap; }
     </style>
@@ -98,16 +98,13 @@
     </div>
 
     <script>
-        // ⭐ 비밀번호 설정
-        var correctPassword = "kchglobal"; 
+        var correctPassword = "접속비밀번호123"; 
 
         function checkPassword() {
             var input = document.getElementById('pw-input').value;
             if (input === correctPassword) {
                 document.getElementById('password-overlay').style.display = 'none';
-            } else {
-                alert("비밀번호가 일치하지 않습니다.");
-            }
+            } else { alert("비밀번호가 일치하지 않습니다."); }
         }
 
         function toggleOIM() {
@@ -116,7 +113,7 @@
         }
 
         var activeTypes = [], activeRegions = [], allMarkers = [];
-        var map, clusterer, myChart, manager, overlays = [];
+        var map, clusterer, myChart, manager;
         var isDistrictOn = false;
 
         kakao.maps.load(function() {
@@ -145,7 +142,6 @@
 
             initChart();
 
-            // 데이터 로드: 발전소(data.json) + 변전소(kepler.gl.json)
             Promise.all([
                 fetch('data.json').then(res => res.json()).catch(() => []),
                 fetch('kepler.gl.json').then(res => res.json()).catch(() => ({}))
@@ -154,23 +150,19 @@
                     solar: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', new kakao.maps.Size(32,32)),
                     wind: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/blue-dot.png', new kakao.maps.Size(32,32)),
                     ess: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/green-dot.png', new kakao.maps.Size(32,32)),
-                    // ⭐ 변전소 아이콘 변경: 실제 철탑 모양 이미지 사용
-                    substation: new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/124/124559.png', new kakao.maps.Size(36, 36), { offset: new kakao.maps.Point(18, 36) })
+                    // ⭐ 변전소 아이콘: 요청하신 노란색 ⚡번개 아이콘 적용
+                    substation: new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/305/305105.png', new kakao.maps.Size(32, 32))
                 };
 
-                // 발전소 파싱
                 var genMarkers = genData.map(item => {
                     var m = new kakao.maps.Marker({ position: new kakao.maps.LatLng(item.lat, item.lng), image: imgs[item.type], title: item.title });
                     m.category = item.type; m.region = item.region; m.owner = item.owner;
                     m.capValue = parseFloat(String(item.capacity).match(/(\d+(\.\d+)?)/)?.[1] || 0);
-                    var content = `<div class="info-content"><div class="info-title">${item.title}</div><div class="info-item"><span class="info-label">사업주체</span><span class="info-value">${item.owner || '-'}</span></div><div class="info-item"><span class="info-label">주소</span><span class="info-value">${item.address || '-'}</span></div><div class="info-item"><span class="info-label">설비용량</span><span class="info-value">${item.capacity || '-'}</span></div></div>`;
-                    var iw = new kakao.maps.InfoWindow({ content: content, removable: true });
+                    var iw = new kakao.maps.InfoWindow({ content: `<div style="padding:10px; font-size:12px;"><b>${item.title}</b><br>사업주체: ${item.owner}<br>용량: ${item.capacity}</div>`, removable: true });
                     kakao.maps.event.addListener(m, 'click', () => iw.open(map, m));
-                    m.infowindow = iw; return m;
+                    return m;
                 });
 
-                // 변전소 파싱
-                var subMarkers = [];
                 if (subData.datasets) {
                     subData.datasets.forEach(ds => {
                         ds.data.allData.forEach(row => {
@@ -178,20 +170,17 @@
                             var lat = row.length === 5 ? row[2] : row[1];
                             var lng = row.length === 5 ? row[3] : row[2];
                             var m = new kakao.maps.Marker({ position: new kakao.maps.LatLng(lat, lng), image: imgs.substation, title: name });
-                            m.category = 'substation'; m.region = '전국';
-                            var iw = new kakao.maps.InfoWindow({ content: `<div class="info-content"><b>⚡ ${name} 변전소</b><br>등급: ${row.length === 5 ? row[4] : row[3]}kV</div>`, removable: true });
+                            m.category = 'substation';
+                            var iw = new kakao.maps.InfoWindow({ content: `<div style="padding:10px; font-size:12px;"><b>⚡ ${name} 변전소</b><br>전압: ${row.length === 5 ? row[4] : row[3]}kV</div>`, removable: true });
                             kakao.maps.event.addListener(m, 'click', () => iw.open(map, m));
-                            m.infowindow = iw; subMarkers.push(m);
+                            genMarkers.push(m);
                         });
                     });
                 }
-
-                allMarkers = [...genMarkers, ...subMarkers];
-                updateMap();
+                allMarkers = genMarkers; updateMap();
             });
         });
 
-        // 기능 함수들
         function toggleFilter(type, val, btn) {
             var arr = (type === 'type') ? activeTypes : activeRegions;
             var idx = arr.indexOf(val);
@@ -206,14 +195,13 @@
             var isAnyFilter = activeTypes.length > 0;
 
             allMarkers.forEach(m => {
-                var typeMatch = activeTypes.length === 0 || activeTypes.indexOf(m.category) > -1;
-                var searchMatch = !search || m.getTitle().includes(search) || (m.owner && m.owner.includes(search));
+                var typeMatch = activeTypes.indexOf(m.category) > -1;
+                var searchMatch = !search || m.getTitle().includes(search);
                 if (isAnyFilter && typeMatch && searchMatch) {
                     m.setMap(map); visible.push(m);
                 } else m.setMap(null);
             });
-            clusterer.addMarkers(visible);
-            updateChart();
+            clusterer.addMarkers(visible); updateChart();
         }
 
         function updateChart() {
