@@ -148,10 +148,10 @@
             var markerOffset = { offset: new kakao.maps.Point(16, 32) };
 
             // 색상별 마커 설정 (안정적인 이미지 경로)
-            var solarImage = new kakao.maps.MarkerImage('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png', markerSize, markerOffset);
-            var windImage = new kakao.maps.MarkerImage('https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_blue.png', markerSize, markerOffset);
+            var solarImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', markerSize, markerOffset);
+            var windImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/blue-dot.png', markerSize, markerOffset);
             // ESS는 기본 또는 녹색 계열을 위한 별도 마커 사용 가능
-            var essImage = new kakao.maps.MarkerImage('https://t1.daumcdn.net/localimg/localimages/07/2011/marker_green_L.png', new kakao.maps.Size(24, 35), new kakao.maps.Point(12, 35));
+            var essImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/green-dot.png', markerSize, markerOffset);
 
             var geocoder = new kakao.maps.services.Geocoder();
 
