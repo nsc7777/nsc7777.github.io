@@ -17,19 +17,26 @@
 
         #map { width: 100%; height: calc(100% - 60px); position: relative; }
 
-        /* 필터 버튼 스타일 */
-        .category-control {
-            position: absolute; top: 10px; left: 10px; z-index: 5;
-            display: flex; gap: 5px; background: white; padding: 5px;
-            border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        /* 필터 컨트롤 영역 */
+        .filter-container {
+            position: absolute; top: 15px; left: 15px; z-index: 5;
+            display: flex; flex-direction: column; gap: 10px;
         }
-        .category-btn {
-            padding: 8px 12px; border: 1px solid #ddd; background: white;
-            border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold;
-            display: flex; align-items: center; gap: 5px; transition: all 0.2s;
+
+        /* 버튼 그룹 공통 스타일 */
+        .filter-group {
+            background: white; padding: 8px; border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2); display: flex; gap: 5px; flex-wrap: wrap;
         }
-        .category-btn:hover { background: #f8f9fa; }
-        .category-btn.active { background: #3498db; color: white; border-color: #2980b9; }
+        .filter-label { font-size: 11px; color: #7f8c8d; font-weight: bold; width: 100%; margin-bottom: 5px; }
+
+        .filter-btn {
+            padding: 6px 10px; border: 1px solid #ddd; background: white;
+            border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover { background: #f8f9fa; }
+        .filter-btn.active { background: #3498db; color: white; border-color: #2980b9; }
 
         .info-content { padding: 12px; font-size: 13px; line-height: 1.6; min-width: 250px; }
         .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 10px; padding-bottom: 5px; color: #2c3e50; font-size: 15px; }
@@ -45,28 +52,38 @@
     </div>
 
     <div id="map">
-        <div class="category-control">
-            <button class="category-btn active" onclick="toggleMarkers('all', this)">전체</button>
-            <button class="category-btn" onclick="toggleMarkers('solar', this)">☀️ 태양광</button>
-            <button class="category-btn" onclick="toggleMarkers('wind', this)">🌬️ 풍력</button>
-            <button class="category-btn" onclick="toggleMarkers('ess', this)">🔋 ESS</button>
+        <div class="filter-container">
+            <div class="filter-group">
+                <div class="filter-label">에너지 종류</div>
+                <button class="filter-btn" id="btn-solar" onclick="setCategory('solar')">☀️ 태양광</button>
+                <button class="filter-btn" id="btn-wind" onclick="setCategory('wind')">🌬️ 풍력</button>
+                <button class="filter-btn" id="btn-ess" onclick="setCategory('ess')">🔋 ESS</button>
+            </div>
+            
+            <div class="filter-group">
+                <div class="filter-label">지역 선택</div>
+                <button class="filter-btn active" onclick="setRegion('all', this)">전국</button>
+                <button class="filter-btn" onclick="setRegion('경북', this)">경북</button>
+                <button class="filter-btn" onclick="setRegion('경남', this)">경남</button>
+                <button class="filter-btn" onclick="setRegion('충남', this)">충남</button>
+                <button class="filter-btn" onclick="setRegion('제주', this)">제주</button>
+                </div>
         </div>
     </div>
 
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f531c1f630564df9b868ad1cbecd9733&libraries=services&autoload=false"></script>
     
     <script>
-        // 마커들을 종류별로 저장할 객체
-        var markerGroups = {
-            solar: [],
-            wind: [],
-            ess: []
-        };
+        // 현재 선택된 필터 상태 관리
+        var currentCategory = ""; // 초기엔 아무것도 선택 안 됨
+        var currentRegion = "all";
+        var allMarkers = []; // 모든 마커를 담을 배열
 
         var positions = [
             {
                 title: '영덕 솔발산풍력',
                 type: 'wind',
+                region: '경북',
                 address: '경상북도 영덕군 남정면 사암리 산13번지', 
                 owner: '(주)대산풍력',
                 shareholder: '(주)대성에스지엠',
@@ -77,6 +94,7 @@
             {
                 title: '홍성 빛나래솔라 태양광',
                 type: 'solar',
+                region: '충남',
                 address: '충남 홍성군 갈산면 기산리 544번지',
                 owner: '(주)홍성빛나래솔라',
                 shareholder: '한국투자증권(주)',
@@ -87,6 +105,7 @@
             {
                 title: '제주 가시리 BESS',
                 type: 'ess',
+                region: '제주',
                 address: '제주특별자치도 서귀포시 표선면 가시리 산47번지',
                 owner: '에스케이이터닉스(주)',
                 shareholder: '에스케이이터닉스(주)',
@@ -125,7 +144,6 @@
                 geocoder.addressSearch(item.address, function(result, status) {
                     if (status === kakao.maps.services.Status.OK) {
                         var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-
                         var selectedMarkerImage = (item.type === 'solar') ? solarImage : (item.type === 'wind') ? windImage : essImage;
 
                         var marker = new kakao.maps.Marker({
@@ -134,9 +152,14 @@
                             title: item.title
                         });
 
-                        // 마커를 지도에 표시하고 그룹에 저장
-                        marker.setMap(map);
-                        markerGroups[item.type].push(marker);
+                        // ★ 초기 설정: 지도를 연결하지 않음 (화면에 안 보임)
+                        marker.setMap(null);
+                        
+                        // 마커 객체에 필터용 속성 추가
+                        marker.category = item.type;
+                        marker.region = item.region;
+                        
+                        allMarkers.push(marker);
 
                         var content = '<div class="info-content">' +
                             '<div class="info-title">' + item.title + '</div>' +
@@ -148,7 +171,6 @@
                             '</div>';
 
                         var infowindow = new kakao.maps.InfoWindow({ content: content, removable: true });
-
                         kakao.maps.event.addListener(marker, 'click', function() {
                             infowindow.open(map, marker);
                         });
@@ -157,25 +179,44 @@
             });
         });
 
-        // 마커 표시/숨김 제어 함수
-        function toggleMarkers(type, btn) {
-            // 버튼 활성화 상태 표시
-            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            // 모든 마커 일단 숨김
-            Object.keys(markerGroups).forEach(key => {
-                markerGroups[key].forEach(marker => marker.setMap(null));
-            });
-
-            // 선택한 타입만 표시
-            if (type === 'all') {
-                Object.keys(markerGroups).forEach(key => {
-                    markerGroups[key].forEach(marker => marker.setMap(map));
-                });
+        // 종류 선택 함수
+        function setCategory(cat) {
+            var btn = document.getElementById('btn-' + cat);
+            
+            // 이미 켜져있는걸 누르면 끄기, 아니면 켜기 (토글 기능)
+            if (currentCategory === cat) {
+                currentCategory = "";
+                btn.classList.remove('active');
             } else {
-                markerGroups[type].forEach(marker => marker.setMap(map));
+                // 기존 버튼들 끄기
+                document.querySelectorAll('.filter-group:first-child .filter-btn').forEach(b => b.classList.remove('active'));
+                currentCategory = cat;
+                btn.classList.add('active');
             }
+            updateMap();
+        }
+
+        // 지역 선택 함수
+        function setRegion(reg, btn) {
+            document.querySelectorAll('.filter-group:last-child .filter-btn').forEach(b => b.classList.remove('active'));
+            currentRegion = reg;
+            btn.classList.add('active');
+            updateMap();
+        }
+
+        // 지도 업데이트 로직 (종류 AND 지역)
+        function updateMap() {
+            allMarkers.forEach(function(marker) {
+                var isCatMatch = (currentCategory === "" ? false : marker.category === currentCategory);
+                var isRegMatch = (currentRegion === "all" ? true : marker.region === currentRegion);
+
+                // 두 조건이 모두 맞을 때만 표시
+                if (isCatMatch && isRegMatch) {
+                    marker.setMap(map);
+                } else {
+                    marker.setMap(null);
+                }
+            });
         }
     </script>
 </body>
