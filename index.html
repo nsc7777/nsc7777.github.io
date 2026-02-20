@@ -28,8 +28,12 @@
         }
         .filter-label { font-size: 11px; color: #7f8c8d; font-weight: bold; margin-bottom: 8px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 4px; }
 
+        .search-box { display: flex; gap: 5px; }
+        .search-input { padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; width: 180px; }
+        .search-btn { background: #34495e; color: white; border: none; padding: 0 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+
         .type-group { display: flex; gap: 5px; flex-direction: row; }
-        .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 45vh; overflow-y: auto; padding-right: 5px; }
+        .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 40vh; overflow-y: auto; padding-right: 5px; }
 
         .filter-btn {
             padding: 8px 12px; border: 1px solid #ddd; background: white;
@@ -38,7 +42,6 @@
         }
         .filter-btn:hover { background: #f8f9fa; }
         .filter-btn.active { background: #3498db; color: white; border-color: #2980b9; }
-        
         .all-btn { background: #f1f2f6; border-color: #ced4da; }
 
         .info-content { padding: 15px; font-size: 14px; line-height: 1.6; min-width: 280px; }
@@ -56,6 +59,14 @@
 
     <div id="map">
         <div class="filter-container">
+            <div class="filter-group">
+                <div class="filter-label">사업명/사업자 검색</div>
+                <div class="search-box">
+                    <input type="text" id="searchInput" class="search-input" placeholder="검색어를 입력하세요..." onkeypress="if(event.keyCode==13) searchData()">
+                    <button class="search-btn" onclick="searchData()">검색</button>
+                </div>
+            </div>
+
             <div class="filter-group">
                 <div class="filter-label">에너지 종류</div>
                 <div class="type-group" id="type-btns">
@@ -94,7 +105,6 @@
         var activeRegions = [...regionList];
         var allMarkers = [];
 
-        // 사용자 제공 데이터 반영
         var positions = [
             {
                 title: '영덕 솔발산풍력',
@@ -138,7 +148,6 @@
             var options = { center: new kakao.maps.LatLng(36.5, 127.8), level: 11 };
             map = new kakao.maps.Map(container, options);
             
-            // 컨트롤 추가
             var mapTypeControl = new kakao.maps.MapTypeControl();
             map.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
             var zoomControl = new kakao.maps.ZoomControl();
@@ -147,10 +156,9 @@
             var markerSize = new kakao.maps.Size(32, 32);
             var markerOffset = { offset: new kakao.maps.Point(16, 32) };
 
-            // 색상별 마커 설정 (안정적인 이미지 경로)
+            // 요청하신 안정적인 이미지 경로로 수정 완료
             var solarImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', markerSize, markerOffset);
             var windImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/blue-dot.png', markerSize, markerOffset);
-            // ESS는 기본 또는 녹색 계열을 위한 별도 마커 사용 가능
             var essImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/green-dot.png', markerSize, markerOffset);
 
             var geocoder = new kakao.maps.services.Geocoder();
@@ -165,6 +173,8 @@
                         marker.setMap(map);
                         marker.category = item.type;
                         marker.region = item.region;
+                        marker.owner = item.owner; 
+                        
                         allMarkers.push(marker);
 
                         var content = '<div class="info-content"><div class="info-title">' + item.title + '</div>' +
@@ -181,10 +191,31 @@
             });
         });
 
+        function searchData() {
+            var input = document.getElementById('searchInput').value.trim();
+            if (!input) {
+                alert("검색어를 입력하세요.");
+                return;
+            }
+            var found = false;
+            allMarkers.forEach(function(marker) {
+                if (marker.getTitle().includes(input) || marker.owner.includes(input)) {
+                    marker.setMap(map);
+                    if (!found) {
+                        map.setCenter(marker.getPosition());
+                        map.setLevel(7);
+                        found = true;
+                    }
+                } else {
+                    marker.setMap(null);
+                }
+            });
+            if (!found) alert("검색 결과가 없습니다.");
+        }
+
         function toggleFilter(filterType, value, btn) {
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
             var index = activeArray.indexOf(value);
-
             if (index > -1) {
                 activeArray.splice(index, 1);
                 btn.classList.remove('active');
@@ -220,7 +251,6 @@
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
             var fullList = (filterType === 'type') ? typeList : regionList;
             var allBtn = document.getElementById(filterType === 'type' ? 'btn-type-all' : 'btn-reg-all');
-
             if (activeArray.length === fullList.length) allBtn.classList.add('active');
             else allBtn.classList.remove('active');
         }
