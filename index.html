@@ -13,7 +13,6 @@
         #header h1 { font-size: 1.3rem; letter-spacing: 1px; }
         #map { width: 100%; height: calc(100% - 60px); position: relative; }
 
-        /* 필터 컨테이너 */
         .filter-container { position: absolute; top: 15px; left: 15px; z-index: 5; display: flex; flex-direction: column; gap: 8px; }
         .filter-group { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); width: fit-content; }
         .filter-label { font-size: 11px; color: #7f8c8d; font-weight: bold; margin-bottom: 6px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 4px; }
@@ -33,19 +32,22 @@
         .type-group { display: flex; gap: 4px; }
         .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
 
-        /* 필터 버튼: 파란색이 활성 상태 */
+        /* 필터 버튼 기본 상태 (흰색) */
         .filter-btn { padding: 6px 10px; border: 1px solid #ddd; background: white; color: #333; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: all 0.2s; white-space: nowrap; }
+        /* 파란색 활성 상태 */
         .filter-btn.active { background: #3498db !important; color: white !important; border-color: #2980b9; }
 
         #chart-group { width: 220px; height: 320px; background: white; }
         .total-label { font-size: 12px; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 5px; }
 
+        /* 인포윈도우 스타일 */
         .info-content { padding: 12px; font-size: 13px; line-height: 1.5; min-width: 280px; }
         .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 8px; padding-bottom: 5px; color: #2c3e50; font-size: 14px; }
         .info-item { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dotted #eee; padding-bottom: 2px; }
         .info-label { color: #7f8c8d; font-weight: bold; margin-right: 12px; white-space: nowrap; }
         .info-value { color: #2c3e50; text-align: right; word-break: break-all; font-size: 11px; }
 
+        /* 지번 검색 말풍선 */
         .addr-result-window { padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border: 1px solid #ccc; min-width: 200px; }
         .addr-result-title { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 10px; display: block; }
         .addr-result-links { display: flex; gap: 10px; border-top: 1px solid #eee; padding-top: 8px; }
@@ -76,10 +78,10 @@
             <div class="filter-group">
                 <div class="filter-label">에너지 종류</div>
                 <div class="type-group" id="type-btns">
-                    <button class="filter-btn active" id="btn-type-all" onclick="toggleAll('type')">전체</button>
-                    <button class="filter-btn active" data-val="solar" onclick="toggleFilter('type', 'solar', this)">🔴 태양광</button>
-                    <button class="filter-btn active" data-val="wind" onclick="toggleFilter('type', 'wind', this)">🔵 풍력</button>
-                    <button class="filter-btn active" data-val="ess" onclick="toggleFilter('type', 'ess', this)">🟢 ESS</button>
+                    <button class="filter-btn" id="btn-type-all" onclick="toggleAll('type')">전체</button>
+                    <button class="filter-btn" data-val="solar" onclick="toggleFilter('type', 'solar', this)">🔴 태양광</button>
+                    <button class="filter-btn" data-val="wind" onclick="toggleFilter('type', 'wind', this)">🔵 풍력</button>
+                    <button class="filter-btn" data-val="ess" onclick="toggleFilter('type', 'ess', this)">🟢 ESS</button>
                 </div>
             </div>
 
@@ -87,21 +89,21 @@
                 <div class="filter-group">
                     <div class="filter-label">지역 선택</div>
                     <div class="region-group" id="region-btns">
-                        <button class="filter-btn active" id="btn-reg-all" onclick="toggleAll('region')">전국</button>
-                        <button class="filter-btn active" data-val="경기" onclick="toggleFilter('region', '경기', this)">경기</button>
-                        <button class="filter-btn active" data-val="강원" onclick="toggleFilter('region', '강원', this)">강원</button>
-                        <button class="filter-btn active" data-val="경북" onclick="toggleFilter('region', '경북', this)">경북</button>
-                        <button class="filter-btn active" data-val="경남" onclick="toggleFilter('region', '경남', this)">경남</button>
-                        <button class="filter-btn active" data-val="충북" onclick="toggleFilter('region', '충북', this)">충북</button>
-                        <button class="filter-btn active" data-val="충남" onclick="toggleFilter('region', '충남', this)">충남</button>
-                        <button class="filter-btn active" data-val="전북" onclick="toggleFilter('region', '전북', this)">전북</button>
-                        <button class="filter-btn active" data-val="전남" onclick="toggleFilter('region', '전남', this)">전남</button>
-                        <button class="filter-btn active" data-val="제주" onclick="toggleFilter('region', '제주', this)">제주</button>
+                        <button class="filter-btn" id="btn-reg-all" onclick="toggleAll('region')">전국</button>
+                        <button class="filter-btn" data-val="경기" onclick="toggleFilter('region', '경기', this)">경기</button>
+                        <button class="filter-btn" data-val="강원" onclick="toggleFilter('region', '강원', this)">강원</button>
+                        <button class="filter-btn" data-val="경북" onclick="toggleFilter('region', '경북', this)">경북</button>
+                        <button class="filter-btn" data-val="경남" onclick="toggleFilter('region', '경남', this)">경남</button>
+                        <button class="filter-btn" data-val="충북" onclick="toggleFilter('region', '충북', this)">충북</button>
+                        <button class="filter-btn" data-val="충남" onclick="toggleFilter('region', '충남', this)">충남</button>
+                        <button class="filter-btn" data-val="전북" onclick="toggleFilter('region', '전북', this)">전북</button>
+                        <button class="filter-btn" data-val="전남" onclick="toggleFilter('region', '전남', this)">전남</button>
+                        <button class="filter-btn" data-val="제주" onclick="toggleFilter('region', '제주', this)">제주</button>
                     </div>
                 </div>
                 <div class="filter-group" id="chart-group">
                     <div class="filter-label">에너지원별 용량 (MW)</div>
-                    <div id="totalSumLabel" class="total-label">총 합계: 0 MW</div>
+                    <div id="totalSumLabel" class="total-label">총 합계: 0.00 MW</div>
                     <canvas id="capacityChart"></canvas>
                 </div>
             </div>
@@ -111,8 +113,11 @@
     <script>
         var typeList = ['solar', 'wind', 'ess'];
         var regionList = ['경기', '강원', '경북', '경남', '충북', '충남', '전북', '전남', '제주'];
-        var activeTypes = [...typeList];
-        var activeRegions = [...regionList];
+        
+        // ⭐ 초기 상태를 비어있는 배열로 설정
+        var activeTypes = [];
+        var activeRegions = [];
+        
         var allMarkers = [];
         var map, clusterer, myChart, geocoder;
         var isDistrictOn = false;
@@ -165,11 +170,10 @@
                     marker.idx = idx;
                     return marker;
                 });
-                updateMap();
+                updateMap(); // 초기 호출 시 아무것도 선택되지 않았으므로 지도에 마커가 뜨지 않음
             });
         });
 
-        // 📊 [수정] 정확한 용량 합산 로직 (클러스터링 무관)
         function updateChart() {
             var totals = { solar: 0, wind: 0, ess: 0 };
             var searchTerm = document.getElementById('searchInput').value.trim();
@@ -190,7 +194,6 @@
             myChart.update();
         }
 
-        // 🗺️ 지도 마커 및 검색 결과 리스트 업데이트
         function updateMap() {
             clusterer.clear();
             var searchTerm = document.getElementById('searchInput').value.trim();
@@ -228,17 +231,14 @@
             updateChart();
         }
 
-        // ⭐ [수정] 필터 토글: 파란색 = 활성, 흰색 = 비활성
         function toggleFilter(filterType, value, btn) {
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
             var index = activeArray.indexOf(value);
             
             if (index > -1) {
-                // 이미 활성 상태면 제거 (흰색으로)
                 activeArray.splice(index, 1);
                 btn.classList.remove('active');
             } else {
-                // 비활성 상태면 추가 (파란색으로)
                 activeArray.push(value);
                 btn.classList.add('active');
             }
@@ -246,24 +246,20 @@
             updateMap();
         }
 
-        // ⭐ [수정] 전체/전국 토글: 파란색 = 모두 활성, 흰색 = 모두 비활성
         function toggleAll(filterType) {
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
             var fullList = (filterType === 'type') ? typeList : regionList;
             var containerId = (filterType === 'type' ? '#type-btns' : '#region-btns');
             
             if (activeArray.length === fullList.length) {
-                // 모두 켜져있으면 모두 끄기
                 if (filterType === 'type') activeTypes = []; else activeRegions = [];
             } else {
-                // 하나라도 꺼져있으면 모두 켜기
                 if (filterType === 'type') activeTypes = [...typeList]; else activeRegions = [...regionList];
             }
             
-            // 모든 버튼 상태 업데이트
             document.querySelectorAll(containerId + ' .filter-btn').forEach(b => {
                 var val = b.getAttribute('data-val');
-                if(!val) { // '전체/전국' 버튼
+                if(!val) {
                     if(activeArray.length === fullList.length) b.classList.add('active');
                     else b.classList.remove('active');
                 } else {
@@ -278,11 +274,10 @@
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
             var fullList = (filterType === 'type') ? typeList : regionList;
             var btnId = (filterType === 'type' ? 'btn-type-all' : 'btn-reg-all');
-            if (activeArray.length === fullList.length) document.getElementById(btnId).classList.add('active');
+            if (activeArray.length === fullList.length && fullList.length > 0) document.getElementById(btnId).classList.add('active');
             else document.getElementById(btnId).classList.remove('active');
         }
 
-        // (나머지 지적편집도, 검색, 차트 초기화 로직 유지)
         function initChart() {
             myChart = new Chart(document.getElementById('capacityChart').getContext('2d'), {
                 type: 'bar',
@@ -297,6 +292,7 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         }
+
         function toggleDistrict() {
             var btn = document.getElementById('distBtn');
             if (!isDistrictOn) {
@@ -308,6 +304,7 @@
             }
             isDistrictOn = !isDistrictOn;
         }
+
         function searchAddress() {
             var addr = document.getElementById('addressInput').value.trim();
             if (!addr) return;
@@ -326,12 +323,14 @@
                 }
             });
         }
+
         function focusMarker(idx) {
             var marker = allMarkers.find(m => m.idx === idx);
             map.setCenter(marker.getPosition());
             map.setLevel(4);
             marker.infowindow.open(map, marker);
         }
+
         function searchData() { updateMap(); }
     </script>
 </body>
