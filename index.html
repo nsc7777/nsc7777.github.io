@@ -148,10 +148,10 @@
             ]).then(([genData, subData]) => {
                 var imgs = { 
                     solar: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', new kakao.maps.Size(32,32)),
-                    wind: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/blue-dot.png', new kakao.maps.Size(32,32)),
+                    wind: new kakao.maps.MarkerImage('wind-farm_15840625.png', new kakao.maps.Size(32,32)),
                     ess: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/green-dot.png', new kakao.maps.Size(32,32)),
                     // ⭐ 변전소 아이콘: 요청하신 노란색 ⚡번개 아이콘 적용
-                    substation: new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/305/305105.png', new kakao.maps.Size(32, 32))
+                    substation: new kakao.maps.MarkerImage('factory_4883014.png', new kakao.maps.Size(32, 32))
                 };
 
                 var genMarkers = genData.map(item => {
