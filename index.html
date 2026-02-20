@@ -13,6 +13,7 @@
         #header h1 { font-size: 1.3rem; letter-spacing: 1px; }
         #map { width: 100%; height: calc(100% - 60px); position: relative; }
 
+        /* 좌측 필터/검색 컨테이너 */
         .filter-container { position: absolute; top: 15px; left: 15px; z-index: 5; display: flex; flex-direction: column; gap: 8px; }
         .filter-group { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); width: fit-content; }
         .filter-label { font-size: 11px; color: #7f8c8d; font-weight: bold; margin-bottom: 6px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 4px; }
@@ -21,38 +22,33 @@
         .search-input { padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 200px; }
         .search-btn { background: #34495e; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
         .addr-btn { background: #27ae60; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        
+        /* 지적편집도 버튼 */
         .dist-btn { background: #e67e22; color: white; border: none; width: 100%; margin-top: 5px; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
         .dist-btn.on { background: #d35400; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
 
-        /* 검색 결과 리스트 스타일 추가 */
-        #search-results { 
-            margin-top: 10px; max-height: 200px; overflow-y: auto; 
-            border-top: 2px solid #3498db; display: none; 
-        }
-        .result-item { 
-            padding: 8px; border-bottom: 1px solid #eee; font-size: 11px; 
-            cursor: pointer; transition: background 0.2s;
-        }
+        /* 검색 결과 목록 */
+        #search-results { margin-top: 10px; max-height: 150px; overflow-y: auto; border-top: 2px solid #3498db; display: none; background: #fff; border-radius: 4px; }
+        .result-item { padding: 8px; border-bottom: 1px solid #eee; font-size: 11px; cursor: pointer; }
         .result-item:hover { background: #f1f9ff; }
-        .result-item-title { font-weight: bold; color: #2c3e50; display: block; }
-        .result-item-owner { color: #7f8c8d; font-size: 10px; }
 
         .bottom-layout { display: flex; gap: 8px; align-items: flex-start; }
         .type-group { display: flex; gap: 4px; }
-        .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 350px; overflow-y: auto; padding-right: 4px; }
+        .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
         .filter-btn { padding: 6px 10px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: all 0.2s; white-space: nowrap; }
         .filter-btn.active { background: #3498db; color: white; border-color: #2980b9; }
-        .all-btn { background: #f1f2f6; }
 
         #chart-group { width: 220px; height: 320px; background: white; }
         .total-label { font-size: 12px; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 5px; }
 
+        /* 복구된 프로젝트 인포윈도우 */
         .info-content { padding: 12px; font-size: 13px; line-height: 1.5; min-width: 280px; }
         .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 8px; padding-bottom: 5px; color: #2c3e50; font-size: 14px; }
         .info-item { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dotted #eee; padding-bottom: 2px; }
         .info-label { color: #7f8c8d; font-weight: bold; margin-right: 12px; white-space: nowrap; }
         .info-value { color: #2c3e50; text-align: right; word-break: break-all; font-size: 11px; }
 
+        /* 지번 검색 말풍선 */
         .addr-result-window { padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border: 1px solid #ccc; min-width: 200px; }
         .addr-result-title { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 10px; display: block; }
         .addr-result-links { display: flex; gap: 10px; border-top: 1px solid #eee; padding-top: 8px; }
@@ -69,11 +65,10 @@
             <div class="filter-group">
                 <div class="filter-label">검색 및 도구</div>
                 <div class="search-box">
-                    <input type="text" id="searchInput" class="search-input" placeholder="사업명/사업자..." onkeypress="if(event.keyCode==13) searchData()">
+                    <input type="text" id="searchInput" class="search-input" placeholder="사업명 또는 사업자 입력..." onkeypress="if(event.keyCode==13) searchData()">
                     <button class="search-btn" onclick="searchData()">검색</button>
                 </div>
                 <div id="search-results"></div>
-
                 <div class="search-box" style="margin-top:5px;">
                     <input type="text" id="addressInput" class="search-input" placeholder="지번/도로명 주소..." onkeypress="if(event.keyCode==13) searchAddress()">
                     <button class="addr-btn" onclick="searchAddress()">이동</button>
@@ -84,7 +79,7 @@
             <div class="filter-group">
                 <div class="filter-label">에너지 종류</div>
                 <div class="type-group" id="type-btns">
-                    <button class="filter-btn all-btn active" id="btn-type-all" onclick="toggleAll('type')">전체</button>
+                    <button class="filter-btn active" id="btn-type-all" onclick="toggleAll('type')">전체</button>
                     <button class="filter-btn active" data-val="solar" onclick="toggleFilter('type', 'solar', this)">🔴 태양광</button>
                     <button class="filter-btn active" data-val="wind" onclick="toggleFilter('type', 'wind', this)">🔵 풍력</button>
                     <button class="filter-btn active" data-val="ess" onclick="toggleFilter('type', 'ess', this)">🟢 ESS</button>
@@ -95,7 +90,7 @@
                 <div class="filter-group">
                     <div class="filter-label">지역 선택</div>
                     <div class="region-group" id="region-btns">
-                        <button class="filter-btn all-btn active" id="btn-reg-all" onclick="toggleAll('region')">전국</button>
+                        <button class="filter-btn active" id="btn-reg-all" onclick="toggleAll('region')">전국</button>
                         <button class="filter-btn active" data-val="경기" onclick="toggleFilter('region', '경기', this)">경기</button>
                         <button class="filter-btn active" data-val="강원" onclick="toggleFilter('region', '강원', this)">강원</button>
                         <button class="filter-btn active" data-val="경북" onclick="toggleFilter('region', '경북', this)">경북</button>
@@ -128,9 +123,9 @@
 
         kakao.maps.load(function() {
             var container = document.getElementById('map');
-            var options = { center: new kakao.maps.LatLng(36.5, 127.8), level: 11 };
-            map = new kakao.maps.Map(container, options);
-
+            map = new kakao.maps.Map(container, { center: new kakao.maps.LatLng(36.5, 127.8), level: 11 });
+            
+            // 지도 컨트롤 추가
             map.addControl(new kakao.maps.MapTypeControl(), kakao.maps.ControlPosition.TOPRIGHT);
             map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
 
@@ -147,8 +142,9 @@
 
             initChart();
 
+            // 1. data.json에서 데이터 로드
             fetch('data.json').then(res => res.json()).then(data => {
-                var markers = data.map(function(item) {
+                allMarkers = data.map(function(item, idx) {
                     var coords = new kakao.maps.LatLng(item.lat, item.lng);
                     var marker = new kakao.maps.Marker({ position: coords, image: imgs[item.type], title: item.title });
                     
@@ -158,6 +154,7 @@
                     var capMatch = String(item.capacity).match(/(\d+(\.\d+)?)/);
                     marker.capValue = capMatch ? parseFloat(capMatch[1]) : 0;
 
+                    // 상세 정보창 구성 (6개 항목 복구)
                     var content = `
                         <div class="info-content">
                             <div class="info-title">${item.title}</div>
@@ -170,73 +167,16 @@
                         </div>`;
                     
                     var infowindow = new kakao.maps.InfoWindow({ content: content, removable: true });
-                    kakao.maps.event.addListener(marker, 'click', () => {
-                        infowindow.open(map, marker);
-                    });
-                    
-                    // 마커 객체에 인포윈도우 저장 (목록 클릭 시 열기 위해)
+                    kakao.maps.event.addListener(marker, 'click', () => infowindow.open(map, marker));
                     marker.infowindow = infowindow;
-                    allMarkers.push(marker);
+                    marker.idx = idx;
                     return marker;
                 });
-                clusterer.addMarkers(markers);
-                updateChart();
+                updateMap();
             });
         });
 
-        // 프로젝트 검색 함수 고도화
-        function searchData() {
-    var input = document.getElementById('searchInput').value.trim();
-    var resultDiv = document.getElementById('search-results');
-    
-    if (!input) {
-        resultDiv.style.display = 'none';
-        updateMap(); 
-        return;
-    }
-
-    var foundMarkers = [];
-    var listHTML = '';
-    var bounds = new kakao.maps.LatLngBounds();
-
-    allMarkers.forEach(function(marker) {
-        if (marker.getTitle().includes(input) || (marker.owner && marker.owner.includes(input))) {
-            marker.setMap(map);
-            foundMarkers.push(marker);
-            bounds.extend(marker.getPosition());
-            
-            listHTML += `
-                <div class="result-item" onclick="focusMarker(${allMarkers.indexOf(marker)})">
-                    <span class="result-item-title">${marker.getTitle()}</span>
-                    <span class="result-item-owner">${marker.owner || ''}</span>
-                </div>`;
-        } else {
-            marker.setMap(null);
-        }
-    });
-
-    if (foundMarkers.length > 0) {
-        resultDiv.innerHTML = listHTML;
-        resultDiv.style.display = 'block';
-        map.setBounds(bounds);
-    } else {
-        resultDiv.innerHTML = '<div class="result-item">결과가 없습니다.</div>';
-        resultDiv.style.display = 'block';
-    }
-    
-    // ★ 추가된 부분: 검색 결과에 맞춰 차트 갱신
-    updateChart(); 
-}
-    
-        // 목록 아이템 클릭 시 해당 마커로 이동 및 정보창 열기
-        function focusMarker(index) {
-            var marker = allMarkers[index];
-            map.setCenter(marker.getPosition());
-            map.setLevel(4);
-            marker.infowindow.open(map, marker);
-        }
-
-        // (이하 나머지 로직 유지)
+        // 지적편집도 토글 함수
         function toggleDistrict() {
             var btn = document.getElementById('distBtn');
             if (!isDistrictOn) {
@@ -249,6 +189,7 @@
             isDistrictOn = !isDistrictOn;
         }
 
+        // 지번/주소 검색 (image_b89017.png 스타일)
         function searchAddress() {
             var addr = document.getElementById('addressInput').value.trim();
             if (!addr) return;
@@ -283,36 +224,81 @@
             });
         }
 
+        // 📊 [수정] 정확한 용량 합산 로직 (클러스터링 무관)
         function updateChart() {
-    var totals = { solar: 0, wind: 0, ess: 0 };
-    // 현재 입력된 검색어 가져오기
-    var searchTerm = document.getElementById('searchInput').value.trim();
+            var totals = { solar: 0, wind: 0, ess: 0 };
+            var searchTerm = document.getElementById('searchInput').value.trim();
 
-    allMarkers.forEach(function(marker) {
-        // 1. 에너지 종류 필터 체크
-        var isTypeActive = activeTypes.indexOf(marker.category) > -1;
-        // 2. 지역 필터 체크
-        var isRegionActive = activeRegions.indexOf(marker.region) > -1;
-        // 3. 검색어 일치 여부 체크
-        var isSearchMatch = !searchTerm || marker.getTitle().includes(searchTerm) || (marker.owner && marker.owner.includes(searchTerm));
+            allMarkers.forEach(function(marker) {
+                var isTypeMatch = activeTypes.indexOf(marker.category) > -1;
+                var isRegionMatch = activeRegions.indexOf(marker.region) > -1;
+                var isSearchMatch = !searchTerm || marker.getTitle().includes(searchTerm) || (marker.owner && marker.owner.includes(searchTerm));
 
-        // 지도 표시 여부(getMap)와 상관없이 '조건'이 맞으면 합산
-        if (isTypeActive && isRegionActive && isSearchMatch) {
-            totals[marker.category] += marker.capValue;
+                if (isTypeMatch && isRegionMatch && isSearchMatch) {
+                    totals[marker.category] += marker.capValue;
+                }
+            });
+
+            var sum = totals.solar + totals.wind + totals.ess;
+            document.getElementById('totalSumLabel').innerText = `총 합계: ${sum.toFixed(2)} MW`;
+            myChart.data.datasets[0].data = [totals.solar, totals.wind, totals.ess];
+            myChart.update();
         }
-    });
 
-    var sum = totals.solar + totals.wind + totals.ess;
-    document.getElementById('totalSumLabel').innerText = `총 합계: ${sum.toFixed(2)} MW`;
-    myChart.data.datasets[0].data = [totals.solar, totals.wind, totals.ess];
-    myChart.update();
-}}
+        // 🗺️ 지도 마커 및 검색 결과 리스트 업데이트
+        function updateMap() {
+            clusterer.clear();
+            var searchTerm = document.getElementById('searchInput').value.trim();
+            var visibleMarkers = [];
+            var listHTML = '';
+            var bounds = new kakao.maps.LatLngBounds();
+
+            allMarkers.forEach(function(marker) {
+                var isTypeMatch = activeTypes.indexOf(marker.category) > -1;
+                var isRegionMatch = activeRegions.indexOf(marker.region) > -1;
+                var isSearchMatch = !searchTerm || marker.getTitle().includes(searchTerm) || (marker.owner && marker.owner.includes(searchTerm));
+
+                if (isTypeMatch && isRegionMatch && isSearchMatch) {
+                    marker.setMap(map);
+                    visibleMarkers.push(marker);
+                    bounds.extend(marker.getPosition());
+                    if(searchTerm) {
+                        listHTML += `<div class="result-item" onclick="focusMarker(${marker.idx})">
+                            <b>${marker.getTitle()}</b><br><small>${marker.owner || ''}</small></div>`;
+                    }
+                } else {
+                    marker.setMap(null);
+                }
+            });
+
+            clusterer.addMarkers(visibleMarkers);
+            var resultDiv = document.getElementById('search-results');
+            if(searchTerm && visibleMarkers.length > 0) {
+                resultDiv.innerHTML = listHTML;
+                resultDiv.style.display = 'block';
+                map.setBounds(bounds);
+            } else {
+                resultDiv.style.display = 'none';
+            }
+            updateChart();
+        }
+
+        function focusMarker(idx) {
+            var marker = allMarkers.find(m => m.idx === idx);
+            map.setCenter(marker.getPosition());
+            map.setLevel(4);
+            marker.infowindow.open(map, marker);
+        }
+
+        function searchData() { updateMap(); }
 
         function toggleFilter(filterType, value, btn) {
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
             var index = activeArray.indexOf(value);
             if (index > -1) activeArray.splice(index, 1); else activeArray.push(value);
-            btn.classList.toggle('active'); updateAllButtonState(filterType); updateMap();
+            btn.classList.toggle('active');
+            updateAllButtonState(filterType);
+            updateMap();
         }
 
         function toggleAll(filterType) {
@@ -326,11 +312,9 @@
             document.querySelectorAll((filterType === 'type' ? '#type-btns' : '#region-btns') + ' .filter-btn').forEach(b => {
                 var val = b.getAttribute('data-val');
                 if(!val) {
-                    if(activeArray.length === fullList.length) b.classList.add('active');
-                    else b.classList.remove('active');
+                    if(activeArray.length === fullList.length) b.classList.add('active'); else b.classList.remove('active');
                 } else {
-                    if(activeArray.indexOf(val) > -1) b.classList.add('active');
-                    else b.classList.remove('active');
+                    if(activeArray.indexOf(val) > -1) b.classList.add('active'); else b.classList.remove('active');
                 }
             });
             updateMap();
@@ -339,33 +323,10 @@
         function updateAllButtonState(filterType) {
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
             var fullList = (filterType === 'type') ? typeList : regionList;
-            var btn = document.getElementById(filterType === 'type' ? 'btn-type-all' : 'btn-reg-all');
-            if (activeArray.length === fullList.length) btn.classList.add('active');
-            else btn.classList.remove('active');
+            var btnId = (filterType === 'type' ? 'btn-type-all' : 'btn-reg-all');
+            if (activeArray.length === fullList.length) document.getElementById(btnId).classList.add('active');
+            else document.getElementById(btnId).classList.remove('active');
         }
-
-        function updateMap() {
-    clusterer.clear();
-    var visibleMarkers = [];
-    var searchTerm = document.getElementById('searchInput').value.trim();
-
-    allMarkers.forEach(function(marker) {
-        var isTypeActive = activeTypes.indexOf(marker.category) > -1;
-        var isRegionActive = activeRegions.indexOf(marker.region) > -1;
-        var isSearchMatch = !searchTerm || marker.getTitle().includes(searchTerm) || (marker.owner && marker.owner.includes(searchTerm));
-
-        if (isTypeActive && isRegionActive && isSearchMatch) {
-            marker.setMap(map); 
-            visibleMarkers.push(marker);
-        } else {
-            marker.setMap(null);
-        }
-    });
-    clusterer.addMarkers(visibleMarkers);
-    
-    // 필터 변경 시 차트 수치도 함께 갱신
-    updateChart();
-}
     </script>
 </body>
 </html>
