@@ -17,12 +17,13 @@
 
         #map { width: 100%; height: calc(100% - 60px); position: relative; }
 
-        /* 필터 컨트롤 레이어 */
+        /* 필터 컨트롤 레이어: 위아래로 쌓기 */
         .filter-container {
             position: absolute; top: 15px; left: 15px; z-index: 5;
             display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
         }
 
+        /* 흰색 칸 너비를 버튼에 딱 맞게 */
         .filter-group {
             background: white; padding: 10px; border-radius: 8px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.2); width: fit-content;
@@ -30,7 +31,8 @@
         .filter-label { font-size: 11px; color: #7f8c8d; font-weight: bold; margin-bottom: 8px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 4px; }
 
         .type-group { display: flex; gap: 5px; flex-direction: row; }
-        .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 50vh; overflow-y: auto; }
+        /* 지역 선택 세로 배치 */
+        .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 45vh; overflow-y: auto; padding-right: 5px; }
 
         .filter-btn {
             padding: 8px 12px; border: 1px solid #ddd; background: white;
@@ -40,10 +42,11 @@
         .filter-btn:hover { background: #f8f9fa; }
         .filter-btn.active { background: #3498db; color: white; border-color: #2980b9; }
         
-        /* 선택 해제 버튼 전용 스타일 */
-        .clear-btn { background: #ecf0f1; color: #7f8c8d; border-color: #bdc3c7; }
-        .clear-btn:hover { background: #bdc3c7; color: white; }
+        /* 선택 해제 버튼 스타일 */
+        .clear-btn { background: #fdfdfd; color: #e74c3c; border-color: #fab1a0; }
+        .clear-btn:hover { background: #ff7675; color: white; }
 
+        /* 인포윈도우(네모창) 스타일 */
         .info-content { padding: 15px; font-size: 14px; line-height: 1.6; min-width: 280px; }
         .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 10px; padding-bottom: 8px; color: #2c3e50; font-size: 16px; }
         .info-item { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px dotted #eee; padding-bottom: 3px; }
@@ -96,10 +99,41 @@
         var currentRegion = "all";
         var allMarkers = [];
 
+        // ★ 작성하셨던 프로젝트 데이터들
         var positions = [
-            { title: '영덕 솔발산풍력', type: 'wind', region: '경북', address: '경상북도 영덕군 남정면 사암리 산13번지', owner: '(주)대산풍력', shareholder: '(주)대성에스지엠', capacity: '22.5 MW', planPeriod: '2028년 7월', prepPeriod: '2030년 7월' },
-            { title: '홍성 빛나래솔라 태양광', type: 'solar', region: '충남', address: '충남 홍성군 갈산면 기산리 544번지', owner: '(주)홍성빛나래솔라', shareholder: '한국투자증권(주)', capacity: '53.24 MW', planPeriod: '2030년 12월', prepPeriod: '2031년 12월' },
-            { title: '제주 가시리 BESS', type: 'ess', region: '제주', address: '제주특별자치도 서귀포시 표선면 가시리 산47번지', owner: '에스케이이터닉스(주)', shareholder: '에스케이이터닉스(주)', capacity: '최대 방전용량 40MW, PCS 44MW', planPeriod: '2026년 10월', prepPeriod: '2026년 12월' }
+            {
+                title: '영덕 솔발산풍력',
+                type: 'wind',
+                region: '경북',
+                address: '경상북도 영덕군 남정면 사암리 산13번지', 
+                owner: '(주)대산풍력',
+                shareholder: '(주)대성에스지엠',
+                capacity: '22.5 MW',
+                planPeriod: '2028년 7월',
+                prepPeriod: '2030년 7월'
+            },
+            {
+                title: '홍성 빛나래솔라 태양광',
+                type: 'solar',
+                region: '충남',
+                address: '충남 홍성군 갈산면 기산리 544번지',
+                owner: '(주)홍성빛나래솔라',
+                shareholder: '한국투자증권(주)',
+                capacity: '53.24 MW',
+                planPeriod: '2030년 12월',
+                prepPeriod: '2031년 12월'
+            },
+            {
+                title: '제주 가시리 BESS',
+                type: 'ess',
+                region: '제주',
+                address: '제주특별자치도 서귀포시 표선면 가시리 산47번지',
+                owner: '에스케이이터닉스(주)',
+                shareholder: '에스케이이터닉스(주)',
+                capacity: '최대 방전용량 40MW, PCS 44MW',
+                planPeriod: '2026년 10월',
+                prepPeriod: '2026년 12월'
+            }
         ];
 
         var map;
@@ -114,9 +148,9 @@
             var zoomControl = new kakao.maps.ZoomControl();
             map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
 
-            // 색상별 둥근 점 마커 (안정적인 구글 마커 경로 사용)
-            var markerSize = new kakao.maps.Size(32, 32); 
-            var markerOffset = { offset: new kakao.maps.Point(16, 32) }; 
+            // 안정적인 색상별 마커 URL (빨강, 파랑, 초록)
+            var markerSize = new kakao.maps.Size(30, 30);
+            var markerOffset = { offset: new kakao.maps.Point(15, 30) };
 
             var solarImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', markerSize, markerOffset);
             var windImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/blue-dot.png', markerSize, markerOffset);
