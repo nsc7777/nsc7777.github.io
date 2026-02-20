@@ -3,19 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>발전사업허가 및 변전소 현황</title>
+    <title>발전사업허가 및 전력계통 현황 (최종)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f531c1f630564df9b868ad1cbecd9733&libraries=services,clusterer,drawing"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; font-family: 'Malgun Gothic', sans-serif; overflow: hidden; }
 
-        /* 🔒 보안 레이어 스타일 */
-        #password-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #2c3e50; color: white; z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
+        /* 🔒 보안 레이어 */
+        #password-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; color: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .pw-box { background: white; padding: 30px; border-radius: 12px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); width: 320px; }
         .pw-box h2 { color: #2c3e50; margin-bottom: 20px; font-size: 18px; }
         .pw-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; font-size: 16px; text-align: center; }
@@ -35,21 +31,19 @@
         .result-item { padding: 8px; border-bottom: 1px solid #eee; font-size: 11px; cursor: pointer; }
         
         .dist-btn { background: #e67e22; color: white; border: none; width: 100%; margin-top: 5px; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
-        .tool-row { display: flex; gap: 5px; margin-top: 5px; }
         .measure-btn { background: #95a5a6; color: white; border: none; flex: 1; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
         .measure-btn.active { background: #2c3e50; }
 
         .bottom-layout { display: flex; gap: 8px; align-items: flex-start; }
         .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
-
-        .filter-btn { padding: 6px 10px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: all 0.2s; }
+        .filter-btn { padding: 6px 10px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: all 0.2s; white-space: nowrap; }
         .filter-btn.active { background: #3498db !important; color: white !important; }
 
         #chart-group { width: 220px; height: 320px; background: white; }
         .total-label { font-size: 12px; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 5px; }
         .dotOverlay { position: relative; bottom: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px; padding: 5px; background: #fff; white-space: nowrap; }
 
-        /* 상세 정보창 스타일 */
+        /* 상세 정보창 */
         .info-content { padding: 12px; font-size: 13px; line-height: 1.5; min-width: 280px; }
         .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 8px; padding-bottom: 5px; color: #2c3e50; font-size: 14px; }
         .info-item { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dotted #eee; padding-bottom: 2px; }
@@ -79,7 +73,7 @@
                 </div>
                 <div id="search-results"></div>
                 <button class="dist-btn" onclick="toggleDistrict()">🗺️ 지적편집도 보기</button>
-                <div class="tool-row">
+                <div style="display: flex; gap: 5px; margin-top: 5px;">
                     <button id="rulerBtn" class="measure-btn" onclick="toggleTool('polyline')">📏 거리재기</button>
                     <button id="circleBtn" class="measure-btn" onclick="toggleTool('circle')">⭕ 반경표시</button>
                 </div>
@@ -110,7 +104,6 @@
                         <button class="filter-btn" data-val="제주" onclick="toggleFilter('region', '제주', this)">제주</button>
                     </div>
                 </div>
-
                 <div class="filter-group" id="chart-group">
                     <div class="filter-label">에너지원별 용량 (MW)</div>
                     <div id="totalSumLabel" class="total-label">총 합계: 0.00 MW</div>
@@ -122,12 +115,10 @@
 
     <script>
         var correctPassword = "kchglobal"; 
-
         function checkPassword() {
             var input = document.getElementById('pw-input').value;
-            if (input === correctPassword) {
-                document.getElementById('password-overlay').style.display = 'none';
-            } else { alert("비밀번호가 일치하지 않습니다."); }
+            if (input === correctPassword) document.getElementById('password-overlay').style.display = 'none';
+            else alert("비밀번호가 일치하지 않습니다.");
         }
 
         var activeTypes = [], activeRegions = [], allMarkers = [];
@@ -160,18 +151,19 @@
 
             initChart();
 
+            // ⭐ 데이터 로드 및 마커 생성
             Promise.all([
                 fetch('data.json').then(res => res.json()).catch(() => []),
                 fetch('kepler.gl.json').then(res => res.json()).catch(() => ({}))
             ]).then(([genData, subData]) => {
+                // 🌪️ 아이콘 경로 안전하게 URL로 교체
                 var imgs = { 
-                    solar: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', new kakao.maps.Size(32,32)),
-                    wind: new kakao.maps.MarkerImage('wind-farm_15840625.png', new kakao.maps.Size(32,32)),
-                    ess: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/green-dot.png', new kakao.maps.Size(32,32)),
-                    substation: new kakao.maps.MarkerImage('factory_4883014.png', new kakao.maps.Size(32, 32))
+                    solar: new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/1076/1076722.png', new kakao.maps.Size(32,32)),
+                    wind: new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/1452/1452441.png', new kakao.maps.Size(32,32)),
+                    ess: new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/3103/3103446.png', new kakao.maps.Size(32,32)),
+                    substation: new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/305/305105.png', new kakao.maps.Size(32, 32))
                 };
 
-                // 발전소 파싱
                 var genMarkers = genData.map(item => {
                     var m = new kakao.maps.Marker({ position: new kakao.maps.LatLng(item.lat, item.lng), image: imgs[item.type], title: item.title });
                     m.category = item.type; m.region = item.region; m.owner = item.owner;
@@ -183,8 +175,8 @@
                         <div class="info-item"><span class="info-label">최대주주</span><span class="info-value">${item.shareholder || '-'}</span></div>
                         <div class="info-item"><span class="info-label">주소</span><span class="info-value">${item.address || '-'}</span></div>
                         <div class="info-item"><span class="info-label">설비용량</span><span class="info-value">${item.capacity || '-'}</span></div>
-                        <div class="info-item"><span class="info-label">공사계획인가</span><span class="info-value">${item.planPeriod || '-'}</span></div>
-                        <div class="info-item"><span class="info-label">사업준비기간</span><span class="info-value">${item.prepPeriod || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">공사인가</span><span class="info-value">${item.planPeriod || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">준비기간</span><span class="info-value">${item.prepPeriod || '-'}</span></div>
                     </div>`;
                     
                     var iw = new kakao.maps.InfoWindow({ content: content, removable: true });
@@ -192,8 +184,6 @@
                     return m;
                 });
 
-                // 변전소 파싱
-                var subMarkers = [];
                 if (subData.datasets) {
                     subData.datasets.forEach(ds => {
                         ds.data.allData.forEach(row => {
@@ -202,18 +192,17 @@
                             var lng = row.length === 5 ? row[3] : row[2];
                             var m = new kakao.maps.Marker({ position: new kakao.maps.LatLng(lat, lng), image: imgs.substation, title: name });
                             m.category = 'substation'; m.region = '전국';
-                            var iw = new kakao.maps.InfoWindow({ content: `<div style="padding:10px; font-size:12px;"><b>⚡ ${name} 변전소</b><br>전압: ${row.length === 5 ? row[4] : row[3]}kV</div>`, removable: true });
+                            var iw = new kakao.maps.InfoWindow({ content: `<div class="info-content"><b>⚡ ${name} 변전소</b><br>전압: ${row.length === 5 ? row[4] : row[3]}kV</div>`, removable: true });
                             kakao.maps.event.addListener(m, 'click', () => iw.open(map, m));
-                            subMarkers.push(m);
+                            genMarkers.push(m);
                         });
                     });
                 }
-
-                allMarkers = [...genMarkers, ...subMarkers];
-                updateMap();
+                allMarkers = genMarkers; updateMap();
             });
         });
 
+        // 🔄 필터 토글
         function toggleFilter(type, val, btn) {
             var arr = (type === 'type') ? activeTypes : activeRegions;
             var idx = arr.indexOf(val);
@@ -221,25 +210,22 @@
             btn.classList.toggle('active'); updateMap();
         }
 
-        // 📊 필터 로직: 종류와 지역이 모두 선택되었거나, 하나라도 선택된 상태일 때 작동
+        // 📊 [핵심 수정] 필터 및 표시 로직
         function updateMap() {
             clusterer.clear();
             var search = document.getElementById('searchInput').value.trim();
             var visible = [];
-            
-            // 종류나 지역 중 하나라도 선택되어 있어야 마커가 나타남 (초기 빈 화면 유지)
-            var isFilterActive = activeTypes.length > 0 || activeRegions.length > 0;
+            var isAnyFilter = activeTypes.length > 0 || activeRegions.length > 0;
 
             allMarkers.forEach(m => {
+                // 종류 조건: 선택 안 됐으면 전체, 됐으면 포함 여부
                 var typeMatch = activeTypes.length === 0 || activeTypes.indexOf(m.category) > -1;
-                var regionMatch = activeRegions.length === 0 || activeRegions.indexOf(m.region) > -1;
-                
-                // 변전소는 '전국' 카테고리이므로 종류 필터만 맞으면 나타나게 설정
-                if (m.category === 'substation') regionMatch = activeTypes.indexOf('substation') > -1;
-
+                // 지역 조건: 선택 안 됐으면 전체, 됐으면 포함 여부 (변전소는 전국 취급)
+                var regionMatch = activeRegions.length === 0 || activeRegions.indexOf(m.region) > -1 || m.category === 'substation';
                 var searchMatch = !search || m.getTitle().includes(search) || (m.owner && m.owner.includes(search));
 
-                if (isFilterActive && typeMatch && regionMatch && searchMatch) {
+                // 어떤 버튼이라도 하나만 눌리면 해당 조건에 맞는 것들 표시
+                if (isAnyFilter && typeMatch && regionMatch && searchMatch) {
                     m.setMap(map); visible.push(m);
                 } else {
                     m.setMap(null);
@@ -253,8 +239,7 @@
             allMarkers.forEach(m => {
                 if (m.getMap() && m.category !== 'substation') totals[m.category] += m.capValue;
             });
-            var sum = totals.solar + totals.wind + totals.ess;
-            document.getElementById('totalSumLabel').innerText = `총 합계: ${sum.toFixed(2)} MW`;
+            document.getElementById('totalSumLabel').innerText = `총 합계: ${(totals.solar + totals.wind + totals.ess).toFixed(2)} MW`;
             myChart.data.datasets[0].data = [totals.solar, totals.wind, totals.ess];
             myChart.update();
         }
