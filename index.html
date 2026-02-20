@@ -186,47 +186,48 @@
 
         // 프로젝트 검색 함수 고도화
         function searchData() {
-            var input = document.getElementById('searchInput').value.trim();
-            var resultDiv = document.getElementById('search-results');
+    var input = document.getElementById('searchInput').value.trim();
+    var resultDiv = document.getElementById('search-results');
+    
+    if (!input) {
+        resultDiv.style.display = 'none';
+        updateMap(); 
+        return;
+    }
+
+    var foundMarkers = [];
+    var listHTML = '';
+    var bounds = new kakao.maps.LatLngBounds();
+
+    allMarkers.forEach(function(marker) {
+        if (marker.getTitle().includes(input) || (marker.owner && marker.owner.includes(input))) {
+            marker.setMap(map);
+            foundMarkers.push(marker);
+            bounds.extend(marker.getPosition());
             
-            if (!input) {
-                resultDiv.style.display = 'none';
-                updateMap(); // 검색어 없으면 전체 복구
-                return;
-            }
-
-            var foundMarkers = [];
-            var listHTML = '';
-            var bounds = new kakao.maps.LatLngBounds();
-
-            allMarkers.forEach(function(marker) {
-                if (marker.getTitle().includes(input) || (marker.owner && marker.owner.includes(input))) {
-                    marker.setMap(map);
-                    foundMarkers.push(marker);
-                    bounds.extend(marker.getPosition());
-                    
-                    // 목록 아이템 생성
-                    listHTML += `
-                        <div class="result-item" onclick="focusMarker(${allMarkers.indexOf(marker)})">
-                            <span class="result-item-title">${marker.getTitle()}</span>
-                            <span class="result-item-owner">${marker.owner || ''}</span>
-                        </div>`;
-                } else {
-                    marker.setMap(null);
-                }
-            });
-
-            if (foundMarkers.length > 0) {
-                resultDiv.innerHTML = listHTML;
-                resultDiv.style.display = 'block';
-                map.setBounds(bounds); // 검색된 모든 마커가 보이도록 지도 범위 조절
-            } else {
-                resultDiv.innerHTML = '<div class="result-item">결과가 없습니다.</div>';
-                resultDiv.style.display = 'block';
-            }
-            updateChart();
+            listHTML += `
+                <div class="result-item" onclick="focusMarker(${allMarkers.indexOf(marker)})">
+                    <span class="result-item-title">${marker.getTitle()}</span>
+                    <span class="result-item-owner">${marker.owner || ''}</span>
+                </div>`;
+        } else {
+            marker.setMap(null);
         }
+    });
 
+    if (foundMarkers.length > 0) {
+        resultDiv.innerHTML = listHTML;
+        resultDiv.style.display = 'block';
+        map.setBounds(bounds);
+    } else {
+        resultDiv.innerHTML = '<div class="result-item">결과가 없습니다.</div>';
+        resultDiv.style.display = 'block';
+    }
+    
+    // ★ 추가된 부분: 검색 결과에 맞춰 차트 갱신
+    updateChart(); 
+}
+    
         // 목록 아이템 클릭 시 해당 마커로 이동 및 정보창 열기
         function focusMarker(index) {
             var marker = allMarkers[index];
@@ -283,17 +284,29 @@
         }
 
         function updateChart() {
-            var totals = { solar: 0, wind: 0, ess: 0 };
-            allMarkers.forEach(function(marker) {
-                if (marker.getMap() && activeTypes.indexOf(marker.category) > -1 && activeRegions.indexOf(marker.region) > -1) {
-                    totals[marker.category] += marker.capValue;
-                }
-            });
-            var sum = totals.solar + totals.wind + totals.ess;
-            document.getElementById('totalSumLabel').innerText = `총 합계: ${sum.toFixed(2)} MW`;
-            myChart.data.datasets[0].data = [totals.solar, totals.wind, totals.ess];
-            myChart.update();
+    var totals = { solar: 0, wind: 0, ess: 0 };
+    // 현재 입력된 검색어 가져오기
+    var searchTerm = document.getElementById('searchInput').value.trim();
+
+    allMarkers.forEach(function(marker) {
+        // 1. 에너지 종류 필터 체크
+        var isTypeActive = activeTypes.indexOf(marker.category) > -1;
+        // 2. 지역 필터 체크
+        var isRegionActive = activeRegions.indexOf(marker.region) > -1;
+        // 3. 검색어 일치 여부 체크
+        var isSearchMatch = !searchTerm || marker.getTitle().includes(searchTerm) || (marker.owner && marker.owner.includes(searchTerm));
+
+        // 지도 표시 여부(getMap)와 상관없이 '조건'이 맞으면 합산
+        if (isTypeActive && isRegionActive && isSearchMatch) {
+            totals[marker.category] += marker.capValue;
         }
+    });
+
+    var sum = totals.solar + totals.wind + totals.ess;
+    document.getElementById('totalSumLabel').innerText = `총 합계: ${sum.toFixed(2)} MW`;
+    myChart.data.datasets[0].data = [totals.solar, totals.wind, totals.ess];
+    myChart.update();
+}}
 
         function toggleFilter(filterType, value, btn) {
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
@@ -332,16 +345,27 @@
         }
 
         function updateMap() {
-            clusterer.clear();
-            var visibleMarkers = [];
-            allMarkers.forEach(function(marker) {
-                if (activeTypes.indexOf(marker.category) > -1 && activeRegions.indexOf(marker.region) > -1) {
-                    marker.setMap(map); visibleMarkers.push(marker);
-                } else marker.setMap(null);
-            });
-            clusterer.addMarkers(visibleMarkers);
-            updateChart();
+    clusterer.clear();
+    var visibleMarkers = [];
+    var searchTerm = document.getElementById('searchInput').value.trim();
+
+    allMarkers.forEach(function(marker) {
+        var isTypeActive = activeTypes.indexOf(marker.category) > -1;
+        var isRegionActive = activeRegions.indexOf(marker.region) > -1;
+        var isSearchMatch = !searchTerm || marker.getTitle().includes(searchTerm) || (marker.owner && marker.owner.includes(searchTerm));
+
+        if (isTypeActive && isRegionActive && isSearchMatch) {
+            marker.setMap(map); 
+            visibleMarkers.push(marker);
+        } else {
+            marker.setMap(null);
         }
+    });
+    clusterer.addMarkers(visibleMarkers);
+    
+    // 필터 변경 시 차트 수치도 함께 갱신
+    updateChart();
+}
     </script>
 </body>
 </html>
