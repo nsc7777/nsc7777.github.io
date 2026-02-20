@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>발전사업허가 취득 현황</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f531c1f630564df9b868ad1cbecd9733&libraries=services,clusterer"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; font-family: 'Malgun Gothic', sans-serif; overflow: hidden; }
@@ -29,12 +30,10 @@
         }
         .filter-label { font-size: 11px; color: #7f8c8d; font-weight: bold; margin-bottom: 6px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 4px; }
 
-        /* 검색창 */
         .search-box { display: flex; gap: 5px; }
         .search-input { padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 200px; }
         .search-btn { background: #34495e; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
 
-        /* 하단 레이아웃: 지역선택과 그래프 가로 배치 */
         .bottom-layout { display: flex; gap: 8px; align-items: flex-start; }
 
         .type-group { display: flex; gap: 4px; }
@@ -48,15 +47,13 @@
         .filter-btn.active { background: #3498db; color: white; border-color: #2980b9; }
         .all-btn { background: #f1f2f6; }
 
-        /* 그래프 박스 크기 조절 (조금 더 작게) */
-        #chart-group { width: 200px; height: 300px; background: white; }
+        #chart-group { width: 200px; height: 320px; background: white; }
 
-        /* 인포윈도우 스타일 (주소 포함) */
         .info-content { padding: 12px; font-size: 13px; line-height: 1.5; min-width: 260px; }
         .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 8px; padding-bottom: 5px; color: #2c3e50; font-size: 14px; }
         .info-item { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dotted #eee; padding-bottom: 2px; }
         .info-label { color: #7f8c8d; font-weight: bold; margin-right: 12px; white-space: nowrap; }
-        .info-value { color: #2c3e50; text-align: right; word-break: break-all; font-size: 12px; }
+        .info-value { color: #2c3e50; text-align: right; word-break: break-all; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -110,74 +107,73 @@
         </div>
     </div>
 
-    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f531c1f630564df9b868ad1cbecd9733&libraries=services&autoload=false"></script>
-    
     <script>
         var typeList = ['solar', 'wind', 'ess'];
         var regionList = ['경기', '강원', '경북', '경남', '충북', '충남', '전북', '전남', '제주'];
         var activeTypes = [...typeList];
         var activeRegions = [...regionList];
         var allMarkers = [];
-        var myChart;
-
-        var positions = [
-            { title: '영덕 솔발산풍력', type: 'wind', region: '경북', address: '경상북도 영덕군 남정면 사암리 산13번지', owner: '(주)대산풍력', shareholder: '(주)대성에스지엠', capacity: '22.5 MW', planPeriod: '2028년 7월', prepPeriod: '2030년 7월' },
-            { title: '홍성 빛나래솔라 태양광', type: 'solar', region: '충남', address: '충남 홍성군 갈산면 기산리 544번지', owner: '(주)홍성빛나래솔라', shareholder: '한국투자증권(주)', capacity: '53.24 MW', planPeriod: '2030년 12월', prepPeriod: '2031년 12월' },
-            { title: '제주 가시리 BESS', type: 'ess', region: '제주', address: '제주특별자치도 서귀포시 표선면 가시리 산47번지', owner: '에스케이이터닉스(주)', shareholder: '에스케이이터닉스(주)', capacity: '최대 방전용량 40MW, PCS 44MW', planPeriod: '2026년 10월', prepPeriod: '2026년 12월' }
-        ];
-
-        var map;
+        var map, clusterer, myChart;
 
         kakao.maps.load(function() {
             var container = document.getElementById('map');
             var options = { center: new kakao.maps.LatLng(36.5, 127.8), level: 11 };
             map = new kakao.maps.Map(container, options);
             
+            // 마커 클러스터러 초기화
+            clusterer = new kakao.maps.MarkerClusterer({
+                map: map,
+                averageCenter: true,
+                minLevel: 10
+            });
+
             var markerSize = new kakao.maps.Size(32, 32);
             var markerOffset = { offset: new kakao.maps.Point(16, 32) };
-
             var solarImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', markerSize, markerOffset);
             var windImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/blue-dot.png', markerSize, markerOffset);
             var essImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/green-dot.png', markerSize, markerOffset);
 
             initChart();
 
-            var geocoder = new kakao.maps.services.Geocoder();
-            positions.forEach(function(item) {
-                geocoder.addressSearch(item.address, function(result, status) {
-                    if (status === kakao.maps.services.Status.OK) {
-                        var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+            // ★ 외부 data.json 파일 불러오기
+            fetch('data.json')
+                .then(response => response.json())
+                .then(data => {
+                    var markers = data.map(function(item) {
+                        var coords = new kakao.maps.LatLng(item.lat, item.lng);
                         var selectedMarkerImage = (item.type === 'solar') ? solarImage : (item.type === 'wind') ? windImage : essImage;
 
                         var marker = new kakao.maps.Marker({ position: coords, image: selectedMarkerImage, title: item.title });
-                        marker.setMap(map);
+                        
+                        // 필터용 속성 저장
                         marker.category = item.type;
                         marker.region = item.region;
                         marker.owner = item.owner; 
                         
-                        var capMatch = item.capacity.match(/(\d+(\.\d+)?)\s*MW/);
+                        var capMatch = String(item.capacity).match(/(\d+(\.\d+)?)/);
                         marker.capValue = capMatch ? parseFloat(capMatch[1]) : 0;
-                        
-                        allMarkers.push(marker);
-                        updateChart();
 
-                        // ★ 세부 내용에 '주소' 항목 추가
                         var content = '<div class="info-content"><div class="info-title">' + item.title + '</div>' +
                             '<div class="info-item"><span class="info-label">사업주체</span><span class="info-value">' + item.owner + '</span></div>' +
-                            '<div class="info-item"><span class="info-label">최대주주</span><span class="info-value">' + item.shareholder + '</span></div>' +
-                            '<div class="info-item"><span class="info-label">주소</span><span class="info-value">' + item.address + '</span></div>' + // 주소 추가됨
+                            '<div class="info-item"><span class="info-label">최대주주</span><span class="info-value">' + (item.shareholder || '-') + '</span></div>' +
+                            '<div class="info-item"><span class="info-label">주소</span><span class="info-value">' + item.address + '</span></div>' +
                             '<div class="info-item"><span class="info-label">설비용량</span><span class="info-value">' + item.capacity + '</span></div>' +
-                            '<div class="info-item"><span class="info-label">공사계획인가</span><span class="info-value">' + item.planPeriod + '</span></div>' +
-                            '<div class="info-item"><span class="info-label">사업준비기간</span><span class="info-value">' + item.prepPeriod + '</span></div></div>';
+                            '<div class="info-item"><span class="info-label">공사계획인가</span><span class="info-value">' + (item.planPeriod || '-') + '</span></div>' +
+                            '<div class="info-item"><span class="info-label">사업준비기간</span><span class="info-value">' + (item.prepPeriod || '-') + '</span></div></div>';
 
                         var infowindow = new kakao.maps.InfoWindow({ content: content, removable: true });
                         kakao.maps.event.addListener(marker, 'click', function() { infowindow.open(map, marker); });
-                    }
-                });
-            });
+
+                        allMarkers.push(marker);
+                        return marker;
+                    });
+                    
+                    clusterer.addMarkers(markers);
+                    updateChart();
+                })
+                .catch(error => console.error('Data Load Error:', error));
         });
 
-        // 차트/필터 로직 생략 (기존과 동일하되 크기에 맞게 업데이트됨)
         function initChart() {
             var ctx = document.getElementById('capacityChart').getContext('2d');
             myChart = new Chart(ctx, {
@@ -192,12 +188,7 @@
                         borderWidth: 1
                     }]
                 },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    scales: { y: { beginAtZero: true } }, 
-                    plugins: { legend: { display: false } } 
-                }
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
             });
         }
 
@@ -212,15 +203,15 @@
 
         function searchData() {
             var input = document.getElementById('searchInput').value.trim();
-            if (!input) { alert("검색어 입력!"); return; }
+            if (!input) return;
             var found = false;
             allMarkers.forEach(function(marker) {
-                if (marker.getTitle().includes(input) || marker.owner.includes(input)) {
+                if (marker.getTitle().includes(input) || (marker.owner && marker.owner.includes(input))) {
                     marker.setMap(map);
                     if (!found) { map.setCenter(marker.getPosition()); map.setLevel(7); found = true; }
                 } else { marker.setMap(null); }
             });
-            updateChart();
+            updateMap(); // 검색 후 클러스터 갱신
         }
 
         function toggleFilter(filterType, value, btn) {
@@ -259,12 +250,19 @@
         }
 
         function updateMap() {
+            clusterer.clear();
+            var visibleMarkers = [];
             allMarkers.forEach(function(marker) {
                 var isTypeActive = activeTypes.indexOf(marker.category) > -1;
                 var isRegionActive = activeRegions.indexOf(marker.region) > -1;
-                if (isTypeActive && isRegionActive) marker.setMap(map);
-                else marker.setMap(null);
+                if (isTypeActive && isRegionActive) {
+                    marker.setMap(map);
+                    visibleMarkers.push(marker);
+                } else {
+                    marker.setMap(null);
+                }
             });
+            clusterer.addMarkers(visibleMarkers);
             updateChart();
         }
     </script>
