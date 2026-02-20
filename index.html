@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>발전사업허가 취득 현황</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f531c1f630564df9b868ad1cbecd9733&libraries=services,clusterer"></script>
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f531c1f630564df9b868ad1cbecd9733&libraries=services,clusterer,drawing"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; font-family: 'Malgun Gothic', sans-serif; overflow: hidden; }
@@ -13,6 +13,7 @@
         #header h1 { font-size: 1.3rem; letter-spacing: 1px; }
         #map { width: 100%; height: calc(100% - 60px); position: relative; }
 
+        /* 필터 및 도구 레이아웃 */
         .filter-container { position: absolute; top: 15px; left: 15px; z-index: 5; display: flex; flex-direction: column; gap: 8px; }
         .filter-group { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); width: fit-content; }
         .filter-label { font-size: 11px; color: #7f8c8d; font-weight: bold; margin-bottom: 6px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 4px; }
@@ -20,30 +21,38 @@
         .search-box { display: flex; gap: 5px; }
         .search-input { padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 200px; }
         .search-btn { background: #34495e; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-        .addr-btn { background: #27ae60; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-        .dist-btn { background: #e67e22; color: white; border: none; width: 100%; margin-top: 5px; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
-        .dist-btn.on { background: #d35400; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
-
-        #search-results { margin-top: 10px; max-height: 150px; overflow-y: auto; border-top: 2px solid #3498db; display: none; background: #fff; border-radius: 4px; }
+        #search-results { margin-top: 10px; max-height: 150px; overflow-y: auto; border-top: 2px solid #3498db; display: none; background: #fff; }
         .result-item { padding: 8px; border-bottom: 1px solid #eee; font-size: 11px; cursor: pointer; }
         .result-item:hover { background: #f1f9ff; }
+
+        /* 측정 도구 버튼 스타일 */
+        .tool-row { display: flex; gap: 5px; margin-top: 5px; }
+        .addr-btn { background: #27ae60; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        .dist-btn { background: #e67e22; color: white; border: none; flex: 1; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .dist-btn.on { background: #d35400; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+        .measure-btn { background: #95a5a6; color: white; border: none; flex: 1; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .measure-btn.active { background: #2c3e50; }
 
         .bottom-layout { display: flex; gap: 8px; align-items: flex-start; }
         .type-group { display: flex; gap: 4px; }
         .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
 
+        /* 필터 버튼 (파란색이 켜진 상태) */
         .filter-btn { padding: 6px 10px; border: 1px solid #ddd; background: white; color: #333; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: all 0.2s; white-space: nowrap; }
         .filter-btn.active { background: #3498db !important; color: white !important; border-color: #2980b9; }
 
-        #chart-group { width: 220px; height: 350px; background: white; }
+        /* 그래프 박스 크기 */
+        #chart-group { width: 220px; height: 320px; background: white; }
         .total-label { font-size: 12px; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 5px; }
 
+        /* 정보창 스타일 */
         .info-content { padding: 12px; font-size: 13px; line-height: 1.5; min-width: 280px; }
         .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 8px; padding-bottom: 5px; color: #2c3e50; font-size: 14px; }
         .info-item { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dotted #eee; padding-bottom: 2px; }
         .info-label { color: #7f8c8d; font-weight: bold; margin-right: 12px; white-space: nowrap; }
         .info-value { color: #2c3e50; text-align: right; word-break: break-all; font-size: 11px; }
 
+        /* 지번 검색 말풍선 */
         .addr-result-window { padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border: 1px solid #ccc; min-width: 200px; }
         .addr-result-title { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 10px; display: block; }
         .addr-result-links { display: flex; gap: 10px; border-top: 1px solid #eee; padding-top: 8px; }
@@ -69,6 +78,10 @@
                     <button class="addr-btn" onclick="searchAddress()">이동</button>
                 </div>
                 <button id="distBtn" class="dist-btn" onclick="toggleDistrict()">🗺️ 지적편집도 보기</button>
+                <div class="tool-row">
+                    <button id="rulerBtn" class="measure-btn" onclick="toggleTool('polyline')">📏 거리재기</button>
+                    <button id="circleBtn" class="measure-btn" onclick="toggleTool('circle')">⭕ 반경표시</button>
+                </div>
             </div>
 
             <div class="filter-group">
@@ -107,10 +120,10 @@
     <script>
         var typeList = ['solar', 'wind', 'ess'];
         var regionList = ['경기', '강원', '경북', '경남', '충북', '충남', '전북', '전남', '제주'];
-        var activeTypes = [];
+        var activeTypes = []; // 초기 비활성 상태
         var activeRegions = [];
         var allMarkers = [];
-        var map, clusterer, myChart, geocoder;
+        var map, clusterer, myChart, geocoder, manager;
         var isDistrictOn = false;
         var searchMarker = null, searchInfoWindow = null;
 
@@ -122,6 +135,15 @@
 
             geocoder = new kakao.maps.services.Geocoder();
             clusterer = new kakao.maps.MarkerClusterer({ map: map, averageCenter: true, minLevel: 10 });
+
+            // 측정 도구 관리자 설정
+            var options = { 
+                map: map, 
+                drawingMode: [],
+                polylineOptions: { strokeColor: '#FF0000', strokeWeight: 3, hintStrokeStyle: 'dash', hintStrokeOpacity: 0.5 },
+                circleOptions: { fillColor: '#FF00FF', fillOpacity: 0.3, strokeColor: '#FF00FF', strokeWeight: 2 }
+            };
+            manager = new kakao.maps.drawing.DrawingManager(options);
 
             var markerSize = new kakao.maps.Size(32, 32);
             var markerOffset = { offset: new kakao.maps.Point(16, 32) };
@@ -137,33 +159,53 @@
                 allMarkers = data.map(function(item, idx) {
                     var coords = new kakao.maps.LatLng(item.lat, item.lng);
                     var marker = new kakao.maps.Marker({ position: coords, image: imgs[item.type], title: item.title });
-                    
-                    marker.category = item.type;
-                    marker.region = item.region;
-                    marker.owner = item.owner;
+                    marker.category = item.type; marker.region = item.region; marker.owner = item.owner;
                     var capMatch = String(item.capacity).match(/(\d+(\.\d+)?)/);
                     marker.capValue = capMatch ? parseFloat(capMatch[1]) : 0;
 
-                    var content = `
-                        <div class="info-content">
-                            <div class="info-title">${item.title}</div>
-                            <div class="info-item"><span class="info-label">사업주체</span><span class="info-value">${item.owner || '-'}</span></div>
-                            <div class="info-item"><span class="info-label">최대주주</span><span class="info-value">${item.shareholder || '-'}</span></div>
-                            <div class="info-item"><span class="info-label">주소</span><span class="info-value">${item.address || '-'}</span></div>
-                            <div class="info-item"><span class="info-label">설비용량</span><span class="info-value">${item.capacity || '-'}</span></div>
-                            <div class="info-item"><span class="info-label">공사계획인가</span><span class="info-value">${item.planPeriod || '-'}</span></div>
-                            <div class="info-item"><span class="info-label">사업준비기간</span><span class="info-value">${item.prepPeriod || '-'}</span></div>
-                        </div>`;
+                    var content = `<div class="info-content"><div class="info-title">${item.title}</div>
+                        <div class="info-item"><span class="info-label">사업주체</span><span class="info-value">${item.owner || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">최대주주</span><span class="info-value">${item.shareholder || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">주소</span><span class="info-value">${item.address || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">설비용량</span><span class="info-value">${item.capacity || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">준비기간</span><span class="info-value">${item.prepPeriod || '-'}</span></div></div>`;
                     
                     var infowindow = new kakao.maps.InfoWindow({ content: content, removable: true });
                     kakao.maps.event.addListener(marker, 'click', () => infowindow.open(map, marker));
-                    marker.infowindow = infowindow;
-                    marker.idx = idx;
+                    marker.infowindow = infowindow; marker.idx = idx;
                     return marker;
                 });
                 updateMap(); 
             });
         });
+
+        // 📏 측정 도구 토글 함수
+        function toggleTool(type) {
+            manager.cancel();
+            var btnId = type === 'polyline' ? 'rulerBtn' : 'circleBtn';
+            var btn = document.getElementById(btnId);
+            
+            if (btn.classList.contains('active')) {
+                manager.select(null);
+                btn.classList.remove('active');
+            } else {
+                document.querySelectorAll('.measure-btn').forEach(b => b.classList.remove('active'));
+                manager.select(type === 'polyline' ? kakao.maps.drawing.OverlayType.POLYLINE : kakao.maps.drawing.OverlayType.CIRCLE);
+                btn.classList.add('active');
+            }
+        }
+
+        function toggleDistrict() {
+            var btn = document.getElementById('distBtn');
+            if (!isDistrictOn) {
+                map.addOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+                btn.classList.add('on'); btn.innerText = "🗺️ 지적편집도 끄기";
+            } else {
+                map.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+                btn.classList.remove('on'); btn.innerText = "🗺️ 지적편집도 보기";
+            }
+            isDistrictOn = !isDistrictOn;
+        }
 
         function updateChart() {
             var totals = { solar: 0, wind: 0, ess: 0 };
@@ -175,13 +217,9 @@
                     var isTypeMatch = activeTypes.length === 0 || activeTypes.indexOf(marker.category) > -1;
                     var isRegionMatch = activeRegions.length === 0 || activeRegions.indexOf(marker.region) > -1;
                     var isSearchMatch = !searchTerm || marker.getTitle().includes(searchTerm) || (marker.owner && marker.owner.includes(searchTerm));
-
-                    if (isTypeMatch && isRegionMatch && isSearchMatch) {
-                        totals[marker.category] += marker.capValue;
-                    }
+                    if (isTypeMatch && isRegionMatch && isSearchMatch) totals[marker.category] += marker.capValue;
                 }
             });
-
             var sum = totals.solar + totals.wind + totals.ess;
             document.getElementById('totalSumLabel').innerText = `총 합계: ${sum.toFixed(2)} MW`;
             myChart.data.datasets[0].data = [totals.solar, totals.wind, totals.ess];
@@ -201,82 +239,42 @@
                     var isTypeMatch = activeTypes.length === 0 || activeTypes.indexOf(marker.category) > -1;
                     var isRegionMatch = activeRegions.length === 0 || activeRegions.indexOf(marker.region) > -1;
                     var isSearchMatch = !searchTerm || marker.getTitle().includes(searchTerm) || (marker.owner && marker.owner.includes(searchTerm));
-
                     if (isTypeMatch && isRegionMatch && isSearchMatch) {
-                        marker.setMap(map);
-                        visibleMarkers.push(marker);
-                        bounds.extend(marker.getPosition());
-                        if(searchTerm) {
-                            listHTML += `<div class="result-item" onclick="focusMarker(${marker.idx})">
-                                <b>${marker.getTitle()}</b><br><small>${marker.owner || ''}</small></div>`;
-                        }
-                    } else {
-                        marker.setMap(null);
-                    }
-                } else {
-                    marker.setMap(null); 
-                }
+                        marker.setMap(map); visibleMarkers.push(marker); bounds.extend(marker.getPosition());
+                        if(searchTerm) listHTML += `<div class="result-item" onclick="focusMarker(${marker.idx})"><b>${marker.getTitle()}</b><br><small>${marker.owner || ''}</small></div>`;
+                    } else marker.setMap(null);
+                } else marker.setMap(null);
             });
-
             clusterer.addMarkers(visibleMarkers);
             var resultDiv = document.getElementById('search-results');
-            if(searchTerm && visibleMarkers.length > 0) {
-                resultDiv.innerHTML = listHTML;
-                resultDiv.style.display = 'block';
-                map.setBounds(bounds);
-            } else {
-                resultDiv.style.display = 'none';
-            }
+            if(searchTerm && visibleMarkers.length > 0) { resultDiv.innerHTML = listHTML; resultDiv.style.display = 'block'; map.setBounds(bounds); }
+            else resultDiv.style.display = 'none';
             updateChart();
         }
 
         function toggleFilter(filterType, value, btn) {
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
             var index = activeArray.indexOf(value);
-            
-            if (index > -1) {
-                activeArray.splice(index, 1);
-                btn.classList.remove('active');
-            } else {
-                activeArray.push(value);
-                btn.classList.add('active');
-            }
+            if (index > -1) { activeArray.splice(index, 1); btn.classList.remove('active'); }
+            else { activeArray.push(value); btn.classList.add('active'); }
             updateMap();
         }
 
         function initChart() {
             myChart = new Chart(document.getElementById('capacityChart').getContext('2d'), {
                 type: 'bar',
-                data: {
-                    labels: ['태양광', '풍력', 'ESS'],
-                    datasets: [{
-                        data: [0, 0, 0],
-                        backgroundColor: ['rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)', 'rgba(75, 192, 192, 0.7)'],
-                        borderWidth: 1
-                    }]
-                },
+                data: { labels: ['태양광', '풍력', 'ESS'], datasets: [{ data: [0, 0, 0], backgroundColor: ['rgba(255, 99, 132, 0.7)', 'rgba(54, 162, 235, 0.7)', 'rgba(75, 192, 192, 0.7)'], borderWidth: 1 }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         }
-        function toggleDistrict() {
-            var btn = document.getElementById('distBtn');
-            if (!isDistrictOn) {
-                map.addOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
-                btn.classList.add('on'); btn.innerText = "🗺️ 지적편집도 끄기";
-            } else {
-                map.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
-                btn.classList.remove('on'); btn.innerText = "🗺️ 지적편집도 보기";
-            }
-            isDistrictOn = !isDistrictOn;
-        }
+
         function searchAddress() {
             var addr = document.getElementById('addressInput').value.trim();
             if (!addr) return;
             geocoder.addressSearch(addr, function(result, status) {
                 if (status === kakao.maps.services.Status.OK) {
                     var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-                    if (searchMarker) searchMarker.setMap(null);
-                    if (searchInfoWindow) searchInfoWindow.close();
+                    if (searchMarker) searchMarker.setMap(null); if (searchInfoWindow) searchInfoWindow.close();
                     searchMarker = new kakao.maps.Marker({ map: map, position: coords });
                     var content = `<div class="addr-result-window"><span class="addr-result-title">${addr}</span>
                         <div class="addr-result-links"><a href="https://map.kakao.com/link/to/${addr},${result[0].y},${result[0].x}" target="_blank" class="addr-link navi">↗ 길찾기</a>
@@ -287,12 +285,12 @@
                 }
             });
         }
+
         function focusMarker(idx) {
             var marker = allMarkers.find(m => m.idx === idx);
-            map.setCenter(marker.getPosition());
-            map.setLevel(4);
-            marker.infowindow.open(map, marker);
+            map.setCenter(marker.getPosition()); map.setLevel(4); marker.infowindow.open(map, marker);
         }
+
         function searchData() { updateMap(); }
     </script>
 </body>
