@@ -13,7 +13,6 @@
         #header h1 { font-size: 1.3rem; letter-spacing: 1px; }
         #map { width: 100%; height: calc(100% - 60px); position: relative; }
 
-        /* 필터 및 도구 레이아웃 */
         .filter-container { position: absolute; top: 15px; left: 15px; z-index: 5; display: flex; flex-direction: column; gap: 8px; }
         .filter-group { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); width: fit-content; }
         .filter-label { font-size: 11px; color: #7f8c8d; font-weight: bold; margin-bottom: 6px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 4px; }
@@ -21,15 +20,14 @@
         .search-box { display: flex; gap: 5px; }
         .search-input { padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 200px; }
         .search-btn { background: #34495e; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-        #search-results { margin-top: 10px; max-height: 150px; overflow-y: auto; border-top: 2px solid #3498db; display: none; background: #fff; }
+        #search-results { margin-top: 10px; max-height: 150px; overflow-y: auto; border-top: 2px solid #3498db; display: none; background: #fff; border-radius: 4px; }
         .result-item { padding: 8px; border-bottom: 1px solid #eee; font-size: 11px; cursor: pointer; }
         .result-item:hover { background: #f1f9ff; }
 
-        /* 측정 도구 버튼 스타일 */
         .tool-row { display: flex; gap: 5px; margin-top: 5px; }
         .addr-btn { background: #27ae60; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-        .dist-btn { background: #e67e22; color: white; border: none; flex: 1; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
-        .dist-btn.on { background: #d35400; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+        .dist-btn { background: #e67e22; color: white; border: none; width: 100%; margin-top: 5px; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .dist-btn.on { background: #d35400; }
         .measure-btn { background: #95a5a6; color: white; border: none; flex: 1; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
         .measure-btn.active { background: #2c3e50; }
 
@@ -37,22 +35,25 @@
         .type-group { display: flex; gap: 4px; }
         .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
 
-        /* 필터 버튼 (파란색이 켜진 상태) */
         .filter-btn { padding: 6px 10px; border: 1px solid #ddd; background: white; color: #333; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: all 0.2s; white-space: nowrap; }
+        /* 파란색 활성화 상태 */
         .filter-btn.active { background: #3498db !important; color: white !important; border-color: #2980b9; }
 
-        /* 그래프 박스 크기 */
         #chart-group { width: 220px; height: 320px; background: white; }
         .total-label { font-size: 12px; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 5px; }
 
-        /* 정보창 스타일 */
+        /* 수치 표시 라벨 스타일 */
+        .dotOverlay { position: relative; bottom: 10px; border-radius: 6px; border: 1px solid #ccc; border-bottom: 2px solid #ddd; float: left; font-size: 12px; padding: 5px; background: #fff; white-space: nowrap; }
+        .dotOverlay:after { content: ''; position: absolute; margin-left: -6px; left: 50%; bottom: -8px; width: 11px; height: 8px; background: url(https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/vertex_white.png) no-repeat 0 0; }
+        .number { font-weight: bold; color: #ee6152; }
+
+        /* 정보창 6개 항목 스타일 */
         .info-content { padding: 12px; font-size: 13px; line-height: 1.5; min-width: 280px; }
         .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 8px; padding-bottom: 5px; color: #2c3e50; font-size: 14px; }
         .info-item { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dotted #eee; padding-bottom: 2px; }
         .info-label { color: #7f8c8d; font-weight: bold; margin-right: 12px; white-space: nowrap; }
         .info-value { color: #2c3e50; text-align: right; word-break: break-all; font-size: 11px; }
 
-        /* 지번 검색 말풍선 */
         .addr-result-window { padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border: 1px solid #ccc; min-width: 200px; }
         .addr-result-title { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 10px; display: block; }
         .addr-result-links { display: flex; gap: 10px; border-top: 1px solid #eee; padding-top: 8px; }
@@ -118,14 +119,13 @@
     </div>
 
     <script>
-        var typeList = ['solar', 'wind', 'ess'];
-        var regionList = ['경기', '강원', '경북', '경남', '충북', '충남', '전북', '전남', '제주'];
-        var activeTypes = []; // 초기 비활성 상태
+        var activeTypes = []; // 초기 비활성 (흰색)
         var activeRegions = [];
         var allMarkers = [];
         var map, clusterer, myChart, geocoder, manager;
         var isDistrictOn = false;
         var searchMarker = null, searchInfoWindow = null;
+        var overlays = []; // 측정 수치 라벨 저장용
 
         kakao.maps.load(function() {
             var container = document.getElementById('map');
@@ -136,21 +136,42 @@
             geocoder = new kakao.maps.services.Geocoder();
             clusterer = new kakao.maps.MarkerClusterer({ map: map, averageCenter: true, minLevel: 10 });
 
-            // 측정 도구 관리자 설정
+            // 📏 측정 도구 관리자 설정
             var options = { 
                 map: map, 
                 drawingMode: [],
-                polylineOptions: { strokeColor: '#FF0000', strokeWeight: 3, hintStrokeStyle: 'dash', hintStrokeOpacity: 0.5 },
+                polylineOptions: { strokeColor: '#FF0000', strokeWeight: 3, hintStrokeStyle: 'dash' },
                 circleOptions: { fillColor: '#FF00FF', fillOpacity: 0.3, strokeColor: '#FF00FF', strokeWeight: 2 }
             };
             manager = new kakao.maps.drawing.DrawingManager(options);
 
+            // ⭐ [핵심 추가] 그리기가 끝났을 때 수치를 표시하는 리스너
+            manager.addListener('drawend', function(data) {
+                var overlay = data.target;
+                var content = '';
+                var position;
+
+                if (data.overlayType === kakao.maps.drawing.OverlayType.POLYLINE) {
+                    var length = Math.round(overlay.getLength());
+                    content = '<div class="dotOverlay">총거리 <span class="number">' + length + '</span>m</div>';
+                    var path = overlay.getPath();
+                    position = path[path.length - 1]; // 마지막 지점
+                } else if (data.overlayType === kakao.maps.drawing.OverlayType.CIRCLE) {
+                    var radius = Math.round(overlay.getRadius());
+                    content = '<div class="dotOverlay">반경 <span class="number">' + radius + '</span>m</div>';
+                    position = overlay.getCenter(); // 중심점
+                }
+
+                var label = new kakao.maps.CustomOverlay({ content: content, position: position, yAnchor: 1 });
+                label.setMap(map);
+                overlays.push(label); // 나중에 한꺼번에 지우기 위해 저장
+            });
+
             var markerSize = new kakao.maps.Size(32, 32);
-            var markerOffset = { offset: new kakao.maps.Point(16, 32) };
             var imgs = {
-                solar: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', markerSize, markerOffset),
-                wind: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/blue-dot.png', markerSize, markerOffset),
-                ess: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/green-dot.png', markerSize, markerOffset)
+                solar: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', markerSize),
+                wind: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/blue-dot.png', markerSize),
+                ess: new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/green-dot.png', markerSize)
             };
 
             initChart();
@@ -163,12 +184,14 @@
                     var capMatch = String(item.capacity).match(/(\d+(\.\d+)?)/);
                     marker.capValue = capMatch ? parseFloat(capMatch[1]) : 0;
 
+                    // 정보창 6개 항목 복구
                     var content = `<div class="info-content"><div class="info-title">${item.title}</div>
                         <div class="info-item"><span class="info-label">사업주체</span><span class="info-value">${item.owner || '-'}</span></div>
                         <div class="info-item"><span class="info-label">최대주주</span><span class="info-value">${item.shareholder || '-'}</span></div>
                         <div class="info-item"><span class="info-label">주소</span><span class="info-value">${item.address || '-'}</span></div>
                         <div class="info-item"><span class="info-label">설비용량</span><span class="info-value">${item.capacity || '-'}</span></div>
-                        <div class="info-item"><span class="info-label">준비기간</span><span class="info-value">${item.prepPeriod || '-'}</span></div></div>`;
+                        <div class="info-item"><span class="info-label">공사계획인가</span><span class="info-value">${item.planPeriod || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">사업준비기간</span><span class="info-value">${item.prepPeriod || '-'}</span></div></div>`;
                     
                     var infowindow = new kakao.maps.InfoWindow({ content: content, removable: true });
                     kakao.maps.event.addListener(marker, 'click', () => infowindow.open(map, marker));
@@ -179,7 +202,7 @@
             });
         });
 
-        // 📏 측정 도구 토글 함수
+        // 도구 토글 및 수치 초기화
         function toggleTool(type) {
             manager.cancel();
             var btnId = type === 'polyline' ? 'rulerBtn' : 'circleBtn';
@@ -195,6 +218,7 @@
             }
         }
 
+        // 지적편집도 토글
         function toggleDistrict() {
             var btn = document.getElementById('distBtn');
             if (!isDistrictOn) {
@@ -207,6 +231,7 @@
             isDistrictOn = !isDistrictOn;
         }
 
+        // 필터 및 합계 로직 (Data-based 정확한 합산)
         function updateChart() {
             var totals = { solar: 0, wind: 0, ess: 0 };
             var searchTerm = document.getElementById('searchInput').value.trim();
@@ -252,6 +277,7 @@
             updateChart();
         }
 
+        // 클릭 한 번으로 활성화 (one-click)
         function toggleFilter(filterType, value, btn) {
             var activeArray = (filterType === 'type') ? activeTypes : activeRegions;
             var index = activeArray.indexOf(value);
