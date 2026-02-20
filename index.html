@@ -17,27 +17,19 @@
 
         #map { width: 100%; height: calc(100% - 60px); position: relative; }
 
-        /* 필터 컨트롤 레이어: 세로로 배치 */
+        /* 필터 컨트롤 레이어 */
         .filter-container {
             position: absolute; top: 15px; left: 15px; z-index: 5;
-            display: flex; 
-            flex-direction: column; /* 박스들을 위아래로 쌓음 */
-            gap: 10px; 
-            align-items: flex-start;
+            display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
         }
 
-        /* 버튼 그룹 공통 스타일 (버튼 크기에 맞춤) */
         .filter-group {
             background: white; padding: 10px; border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2); 
-            width: fit-content; /* 흰색 칸 너비를 버튼에 맞게 축소 */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2); width: fit-content;
         }
         .filter-label { font-size: 11px; color: #7f8c8d; font-weight: bold; margin-bottom: 8px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 4px; }
 
-        /* 에너지 종류: 가로 배치 */
         .type-group { display: flex; gap: 5px; flex-direction: row; }
-
-        /* 지역 선택: 세로 배치 */
         .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 50vh; overflow-y: auto; }
 
         .filter-btn {
@@ -47,8 +39,11 @@
         }
         .filter-btn:hover { background: #f8f9fa; }
         .filter-btn.active { background: #3498db; color: white; border-color: #2980b9; }
+        
+        /* 선택 해제 버튼 전용 스타일 */
+        .clear-btn { background: #ecf0f1; color: #7f8c8d; border-color: #bdc3c7; }
+        .clear-btn:hover { background: #bdc3c7; color: white; }
 
-        /* 인포윈도우 스타일 (확대된 크기 유지) */
         .info-content { padding: 15px; font-size: 14px; line-height: 1.6; min-width: 280px; }
         .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 10px; padding-bottom: 8px; color: #2c3e50; font-size: 16px; }
         .info-item { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px dotted #eee; padding-bottom: 3px; }
@@ -68,16 +63,17 @@
                 <div class="filter-label">에너지 종류</div>
                 <div class="type-group">
                     <button class="filter-btn active" id="btn-all" onclick="setCategory('all')">전체</button>
-                    <button class="filter-btn" id="btn-solar" onclick="setCategory('solar')">☀️ 태양광</button>
-                    <button class="filter-btn" id="btn-wind" onclick="setCategory('wind')">🌬️ 풍력</button>
-                    <button class="filter-btn" id="btn-ess" onclick="setCategory('ess')">🔋 ESS</button>
+                    <button class="filter-btn" id="btn-solar" onclick="setCategory('solar')">🔴 태양광</button>
+                    <button class="filter-btn" id="btn-wind" onclick="setCategory('wind')">🔵 풍력</button>
+                    <button class="filter-btn" id="btn-ess" onclick="setCategory('ess')">🟢 ESS</button>
+                    <button class="filter-btn clear-btn" onclick="setCategory('none')">선택 해제</button>
                 </div>
             </div>
             
             <div class="filter-group">
                 <div class="filter-label">지역 선택</div>
                 <div class="region-group">
-                    <button class="filter-btn active" onclick="setRegion('all', this)">전국</button>
+                    <button class="filter-btn active" id="reg-all" onclick="setRegion('all', this)">전국</button>
                     <button class="filter-btn" onclick="setRegion('경기', this)">경기</button>
                     <button class="filter-btn" onclick="setRegion('강원', this)">강원</button>
                     <button class="filter-btn" onclick="setRegion('경북', this)">경북</button>
@@ -87,6 +83,7 @@
                     <button class="filter-btn" onclick="setRegion('전북', this)">전북</button>
                     <button class="filter-btn" onclick="setRegion('전남', this)">전남</button>
                     <button class="filter-btn" onclick="setRegion('제주', this)">제주</button>
+                    <button class="filter-btn clear-btn" onclick="setRegion('none', this)">선택 해제</button>
                 </div>
             </div>
         </div>
@@ -100,50 +97,16 @@
         var allMarkers = [];
 
         var positions = [
-            {
-                title: '영덕 솔발산풍력',
-                type: 'wind',
-                region: '경북',
-                address: '경상북도 영덕군 남정면 사암리 산13번지', 
-                owner: '(주)대산풍력',
-                shareholder: '(주)대성에스지엠',
-                capacity: '22.5 MW',
-                planPeriod: '2028년 7월',
-                prepPeriod: '2030년 7월'
-            },
-            {
-                title: '홍성 빛나래솔라 태양광',
-                type: 'solar',
-                region: '충남',
-                address: '충남 홍성군 갈산면 기산리 544번지',
-                owner: '(주)홍성빛나래솔라',
-                shareholder: '한국투자증권(주)',
-                capacity: '53.24 MW',
-                planPeriod: '2030년 12월',
-                prepPeriod: '2031년 12월'
-            },
-            {
-                title: '제주 가시리 BESS',
-                type: 'ess',
-                region: '제주',
-                address: '제주특별자치도 서귀포시 표선면 가시리 산47번지',
-                owner: '에스케이이터닉스(주)',
-                shareholder: '에스케이이터닉스(주)',
-                capacity: '최대 방전용량 40MW, PCS 44MW',
-                planPeriod: '2026년 10월',
-                prepPeriod: '2026년 12월'
-            }
+            { title: '영덕 솔발산풍력', type: 'wind', region: '경북', address: '경상북도 영덕군 남정면 사암리 산13번지', owner: '(주)대산풍력', shareholder: '(주)대성에스지엠', capacity: '22.5 MW', planPeriod: '2028년 7월', prepPeriod: '2030년 7월' },
+            { title: '홍성 빛나래솔라 태양광', type: 'solar', region: '충남', address: '충남 홍성군 갈산면 기산리 544번지', owner: '(주)홍성빛나래솔라', shareholder: '한국투자증권(주)', capacity: '53.24 MW', planPeriod: '2030년 12월', prepPeriod: '2031년 12월' },
+            { title: '제주 가시리 BESS', type: 'ess', region: '제주', address: '제주특별자치도 서귀포시 표선면 가시리 산47번지', owner: '에스케이이터닉스(주)', shareholder: '에스케이이터닉스(주)', capacity: '최대 방전용량 40MW, PCS 44MW', planPeriod: '2026년 10월', prepPeriod: '2026년 12월' }
         ];
 
         var map;
 
         kakao.maps.load(function() {
             var container = document.getElementById('map');
-            var options = {
-                center: new kakao.maps.LatLng(36.5, 127.8),
-                level: 11
-            };
-
+            var options = { center: new kakao.maps.LatLng(36.5, 127.8), level: 11 };
             map = new kakao.maps.Map(container, options);
             
             var mapTypeControl = new kakao.maps.MapTypeControl();
@@ -151,13 +114,13 @@
             var zoomControl = new kakao.maps.ZoomControl();
             map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
 
-            var markerSize = new kakao.maps.Size(40, 40); 
-            var markerOffset = { offset: new kakao.maps.Point(20, 40) }; 
+            // 색상별 둥근 점 마커 (안정적인 구글 마커 경로 사용)
+            var markerSize = new kakao.maps.Size(32, 32); 
+            var markerOffset = { offset: new kakao.maps.Point(16, 32) }; 
 
-            // 안정적인 아이콘 이미지 URL
-            var solarImage = new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/128/2910/2910174.png', markerSize, markerOffset);
-            var windImage = new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/128/1454/1454641.png', markerSize, markerOffset);
-            var essImage = new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/128/3103/3103460.png', markerSize, markerOffset);
+            var solarImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', markerSize, markerOffset);
+            var windImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/blue-dot.png', markerSize, markerOffset);
+            var essImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/green-dot.png', markerSize, markerOffset);
 
             var geocoder = new kakao.maps.services.Geocoder();
 
@@ -167,30 +130,21 @@
                         var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
                         var selectedMarkerImage = (item.type === 'solar') ? solarImage : (item.type === 'wind') ? windImage : essImage;
 
-                        var marker = new kakao.maps.Marker({
-                            position: coords,
-                            image: selectedMarkerImage,
-                            title: item.title
-                        });
-
+                        var marker = new kakao.maps.Marker({ position: coords, image: selectedMarkerImage, title: item.title });
                         marker.setMap(map);
                         marker.category = item.type;
                         marker.region = item.region;
                         allMarkers.push(marker);
 
-                        var content = '<div class="info-content">' +
-                            '<div class="info-title">' + item.title + '</div>' +
+                        var content = '<div class="info-content"><div class="info-title">' + item.title + '</div>' +
                             '<div class="info-item"><span class="info-label">사업주체</span><span class="info-value">' + item.owner + '</span></div>' +
                             '<div class="info-item"><span class="info-label">최대주주</span><span class="info-value">' + item.shareholder + '</span></div>' +
                             '<div class="info-item"><span class="info-label">설비용량</span><span class="info-value">' + item.capacity + '</span></div>' +
                             '<div class="info-item"><span class="info-label">공사계획인가</span><span class="info-value">' + item.planPeriod + '</span></div>' +
-                            '<div class="info-item"><span class="info-label">사업준비기간</span><span class="info-value">' + item.prepPeriod + '</span></div>' +
-                            '</div>';
+                            '<div class="info-item"><span class="info-label">사업준비기간</span><span class="info-value">' + item.prepPeriod + '</span></div></div>';
 
                         var infowindow = new kakao.maps.InfoWindow({ content: content, removable: true });
-                        kakao.maps.event.addListener(marker, 'click', function() {
-                            infowindow.open(map, marker);
-                        });
+                        kakao.maps.event.addListener(marker, 'click', function() { infowindow.open(map, marker); });
                     }
                 });
             });
@@ -198,28 +152,27 @@
 
         function setCategory(cat) {
             document.querySelectorAll('.type-group .filter-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-' + cat).classList.add('active');
+            if(cat !== 'none') {
+                var btnId = cat === 'all' ? 'btn-all' : 'btn-' + cat;
+                document.getElementById(btnId).classList.add('active');
+            }
             currentCategory = cat;
             updateMap();
         }
 
         function setRegion(reg, btn) {
             document.querySelectorAll('.region-group .filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+            if(reg !== 'none') btn.classList.add('active');
             currentRegion = reg;
             updateMap();
         }
 
         function updateMap() {
             allMarkers.forEach(function(marker) {
-                var isCatMatch = (currentCategory === "all" ? true : marker.category === currentCategory);
-                var isRegMatch = (currentRegion === "all" ? true : marker.region === currentRegion);
-
-                if (isCatMatch && isRegMatch) {
-                    marker.setMap(map);
-                } else {
-                    marker.setMap(null);
-                }
+                var isCatMatch = (currentCategory === "all" ? true : (currentCategory === "none" ? false : marker.category === currentCategory));
+                var isRegMatch = (currentRegion === "all" ? true : (currentRegion === "none" ? false : marker.region === currentRegion));
+                if (isCatMatch && isRegMatch) marker.setMap(map);
+                else marker.setMap(null);
             });
         }
     </script>
