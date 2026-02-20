@@ -13,6 +13,7 @@
         #header h1 { font-size: 1.3rem; letter-spacing: 1px; }
         #map { width: 100%; height: calc(100% - 60px); position: relative; }
 
+        /* 필터/검색 컨테이너 레이아웃 */
         .filter-container { position: absolute; top: 15px; left: 15px; z-index: 5; display: flex; flex-direction: column; gap: 8px; }
         .filter-group { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); width: fit-content; }
         .filter-label { font-size: 11px; color: #7f8c8d; font-weight: bold; margin-bottom: 6px; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 4px; }
@@ -20,8 +21,7 @@
         .search-box { display: flex; gap: 5px; }
         .search-input { padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 200px; }
         .search-btn { background: #34495e; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-        /* 주소 검색 버튼은 색상을 조금 다르게 배치 */
-        .addr-btn { background: #27ae60; }
+        .addr-btn { background: #27ae60; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
 
         .bottom-layout { display: flex; gap: 8px; align-items: flex-start; }
         .type-group { display: flex; gap: 4px; }
@@ -30,12 +30,22 @@
         .filter-btn.active { background: #3498db; color: white; border-color: #2980b9; }
         .all-btn { background: #f1f2f6; }
 
-        #chart-group { width: 200px; height: 320px; background: white; }
+        /* 차트 박스 */
+        #chart-group { width: 220px; height: 320px; background: white; }
+
+        /* 프로젝트 마커용 인포윈도우 */
         .info-content { padding: 12px; font-size: 13px; line-height: 1.5; min-width: 260px; }
         .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 8px; padding-bottom: 5px; color: #2c3e50; font-size: 14px; }
         .info-item { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dotted #eee; padding-bottom: 2px; }
         .info-label { color: #7f8c8d; font-weight: bold; margin-right: 12px; white-space: nowrap; }
         .info-value { color: #2c3e50; text-align: right; word-break: break-all; font-size: 11px; }
+
+        /* 주소 검색 결과 말풍선 스타일 (카카오맵 스타일) */
+        .addr-result-window { padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border: 1px solid #ccc; min-width: 200px; }
+        .addr-result-title { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 10px; display: block; }
+        .addr-result-links { display: flex; gap: 10px; border-top: 1px solid #eee; padding-top: 8px; }
+        .addr-link { font-size: 12px; color: #3498db; text-decoration: none; display: flex; align-items: center; gap: 3px; }
+        .addr-link.navi { background: #3498db; color: white; padding: 4px 8px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -56,7 +66,7 @@
                 <div class="filter-label">지번/도로명 주소 검색</div>
                 <div class="search-box">
                     <input type="text" id="addressInput" class="search-input" placeholder="예: 영덕군 사암리 산13" onkeypress="if(event.keyCode==13) searchAddress()">
-                    <button class="search-btn addr-btn" onclick="searchAddress()">이동</button>
+                    <button class="addr-btn" onclick="searchAddress()">이동</button>
                 </div>
             </div>
 
@@ -101,36 +111,38 @@
         var activeRegions = [...regionList];
         var allMarkers = [];
         var map, clusterer, myChart, geocoder;
+        var searchMarker = null; 
+        var searchInfoWindow = null;
 
         kakao.maps.load(function() {
             var container = document.getElementById('map');
             var options = { center: new kakao.maps.LatLng(36.5, 127.8), level: 11 };
             map = new kakao.maps.Map(container, options);
 
-            // ★ 스카이뷰 전환 컨트롤 복구
+            // ★ 지도 컨트롤 복구 (스카이뷰/줌)
             var mapTypeControl = new kakao.maps.MapTypeControl();
             map.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
             var zoomControl = new kakao.maps.ZoomControl();
             map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
 
-            geocoder = new kakao.maps.services.Geocoder(); // 주소 검색 객체 생성
-
+            geocoder = new kakao.maps.services.Geocoder();
             clusterer = new kakao.maps.MarkerClusterer({ map: map, averageCenter: true, minLevel: 10 });
 
             var markerSize = new kakao.maps.Size(32, 32);
             var markerOffset = { offset: new kakao.maps.Point(16, 32) };
-            var solarImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', markerSize, markerOffset);
-            var windImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/blue-dot.png', markerSize, markerOffset);
-            var essImage = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/green-dot.png', markerSize, markerOffset);
+            var solarImg = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/red-dot.png', markerSize, markerOffset);
+            var windImg = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/blue-dot.png', markerSize, markerOffset);
+            var essImg = new kakao.maps.MarkerImage('https://maps.google.com/mapfiles/ms/icons/green-dot.png', markerSize, markerOffset);
 
             initChart();
 
+            // ★ data.json 불러오기
             fetch('data.json')
                 .then(res => res.json())
                 .then(data => {
                     var markers = data.map(function(item) {
                         var coords = new kakao.maps.LatLng(item.lat, item.lng);
-                        var img = (item.type === 'solar') ? solarImage : (item.type === 'wind') ? windImage : essImage;
+                        var img = (item.type === 'solar') ? solarImg : (item.type === 'wind') ? windImg : essImg;
                         var marker = new kakao.maps.Marker({ position: coords, image: img, title: item.title });
                         marker.category = item.type;
                         marker.region = item.region;
@@ -139,11 +151,12 @@
                         marker.capValue = capMatch ? parseFloat(capMatch[1]) : 0;
 
                         var content = '<div class="info-content"><div class="info-title">' + item.title + '</div>' +
-                            '<div class="info-item"><span class="info-label">사업주체</span><span class="info-value">' + item.owner + '</span></div>' +
-                            '<div class="info-item"><span class="info-label">주소</span><span class="info-value">' + item.address + '</span></div>' +
-                            '<div class="info-item"><span class="info-label">설비용량</span><span class="info-value">' + item.capacity + '</span></div>' +
+                            '<div class="info-item"><span class="info-label">사업주체</span><span class="info-value">' + (item.owner || '-') + '</span></div>' +
+                            '<div class="info-item"><span class="info-label">주소</span><span class="info-value">' + (item.address || '-') + '</span></div>' +
+                            '<div class="info-item"><span class="info-label">설비용량</span><span class="info-value">' + (item.capacity || '-') + '</span></div>' +
                             '<div class="info-item"><span class="info-label">공사계획인가</span><span class="info-value">' + (item.planPeriod || '-') + '</span></div>' +
                             '<div class="info-item"><span class="info-label">사업준비기간</span><span class="info-value">' + (item.prepPeriod || '-') + '</span></div></div>';
+                        
                         var infowindow = new kakao.maps.InfoWindow({ content: content, removable: true });
                         kakao.maps.event.addListener(marker, 'click', function() { infowindow.open(map, marker); });
                         allMarkers.push(marker);
@@ -154,20 +167,28 @@
                 });
         });
 
-        // ★ 지번/주소 검색 함수 추가
+        // 지번 검색 함수 (말풍선 스타일 적용)
         function searchAddress() {
             var addr = document.getElementById('addressInput').value.trim();
-            if (!addr) { alert("검색할 주소를 입력하세요."); return; }
+            if (!addr) { alert("주소를 입력하세요."); return; }
             geocoder.addressSearch(addr, function(result, status) {
                 if (status === kakao.maps.services.Status.OK) {
                     var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+                    if (searchMarker) searchMarker.setMap(null);
+                    if (searchInfoWindow) searchInfoWindow.close();
+
+                    searchMarker = new kakao.maps.Marker({ map: map, position: coords });
+                    var content = '<div class="addr-result-window"><span class="addr-result-title">' + addr + '</span>' +
+                        '<div class="addr-result-links"><a href="https://map.kakao.com/link/to/' + addr + ',' + result[0].y + ',' + result[0].x + '" target="_blank" class="addr-link navi">↗ 길찾기</a>' +
+                        '<a href="https://map.kakao.com/link/search/' + addr + '" target="_blank" class="addr-link">큰 지도로 보기</a></div></div>';
+                    searchInfoWindow = new kakao.maps.InfoWindow({ content: content, removable: true });
+                    searchInfoWindow.open(map, searchMarker);
                     map.setCenter(coords);
-                    map.setLevel(3); // 지번 검색 시 상세 위치 확인을 위해 줌인
+                    map.setLevel(3);
                 } else { alert("주소를 찾을 수 없습니다."); }
             });
         }
 
-        // (나머지 로직은 이전과 동일)
         function initChart() {
             var ctx = document.getElementById('capacityChart').getContext('2d');
             myChart = new Chart(ctx, {
