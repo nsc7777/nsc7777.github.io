@@ -32,22 +32,19 @@
         .type-group { display: flex; gap: 4px; }
         .region-group { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
 
-        /* 필터 버튼 기본 상태 (흰색) */
+        /* 필터 버튼 (흰색 = 꺼짐 / 파란색 = 켜짐) */
         .filter-btn { padding: 6px 10px; border: 1px solid #ddd; background: white; color: #333; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: all 0.2s; white-space: nowrap; }
-        /* 파란색 활성 상태 */
         .filter-btn.active { background: #3498db !important; color: white !important; border-color: #2980b9; }
 
         #chart-group { width: 220px; height: 320px; background: white; }
         .total-label { font-size: 12px; font-weight: bold; color: #2c3e50; text-align: center; margin-bottom: 5px; }
 
-        /* 인포윈도우 스타일 */
         .info-content { padding: 12px; font-size: 13px; line-height: 1.5; min-width: 280px; }
         .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 8px; padding-bottom: 5px; color: #2c3e50; font-size: 14px; }
         .info-item { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dotted #eee; padding-bottom: 2px; }
         .info-label { color: #7f8c8d; font-weight: bold; margin-right: 12px; white-space: nowrap; }
         .info-value { color: #2c3e50; text-align: right; word-break: break-all; font-size: 11px; }
 
-        /* 지번 검색 말풍선 */
         .addr-result-window { padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border: 1px solid #ccc; min-width: 200px; }
         .addr-result-title { font-size: 14px; font-weight: bold; color: #333; margin-bottom: 10px; display: block; }
         .addr-result-links { display: flex; gap: 10px; border-top: 1px solid #eee; padding-top: 8px; }
@@ -114,7 +111,7 @@
         var typeList = ['solar', 'wind', 'ess'];
         var regionList = ['경기', '강원', '경북', '경남', '충북', '충남', '전북', '전남', '제주'];
         
-        // ⭐ 초기 상태를 비어있는 배열로 설정
+        // 초기에는 아무것도 선택되지 않은 빈 상태
         var activeTypes = [];
         var activeRegions = [];
         
@@ -170,21 +167,29 @@
                     marker.idx = idx;
                     return marker;
                 });
-                updateMap(); // 초기 호출 시 아무것도 선택되지 않았으므로 지도에 마커가 뜨지 않음
+                updateMap(); 
             });
         });
 
+        // 📊 [핵심 수정] 용량 합계 로직: 하나라도 선택되면 필터링 시작
         function updateChart() {
             var totals = { solar: 0, wind: 0, ess: 0 };
             var searchTerm = document.getElementById('searchInput').value.trim();
 
-            allMarkers.forEach(function(marker) {
-                var isTypeMatch = activeTypes.indexOf(marker.category) > -1;
-                var isRegionMatch = activeRegions.indexOf(marker.region) > -1;
-                var isSearchMatch = !searchTerm || marker.getTitle().includes(searchTerm) || (marker.owner && marker.owner.includes(searchTerm));
+            // 아무 필터도 활성화되지 않았으면 합계는 0
+            var isAnyFilterActive = activeTypes.length > 0 || activeRegions.length > 0;
 
-                if (isTypeMatch && isRegionMatch && isSearchMatch) {
-                    totals[marker.category] += marker.capValue;
+            allMarkers.forEach(function(marker) {
+                if (isAnyFilterActive) {
+                    // 에너지 종류: 비어있으면 해당 그룹은 '전체'로 간주, 채워져있으면 '포함' 확인
+                    var isTypeMatch = activeTypes.length === 0 || activeTypes.indexOf(marker.category) > -1;
+                    // 지역 선택: 비어있으면 해당 그룹은 '전체'로 간주, 채워져있으면 '포함' 확인
+                    var isRegionMatch = activeRegions.length === 0 || activeRegions.indexOf(marker.region) > -1;
+                    var isSearchMatch = !searchTerm || marker.getTitle().includes(searchTerm) || (marker.owner && marker.owner.includes(searchTerm));
+
+                    if (isTypeMatch && isRegionMatch && isSearchMatch) {
+                        totals[marker.category] += marker.capValue;
+                    }
                 }
             });
 
@@ -194,6 +199,7 @@
             myChart.update();
         }
 
+        // 🗺️ [핵심 수정] 지도 업데이트 로직: 하나라도 선택되면 나타남
         function updateMap() {
             clusterer.clear();
             var searchTerm = document.getElementById('searchInput').value.trim();
@@ -201,21 +207,27 @@
             var listHTML = '';
             var bounds = new kakao.maps.LatLngBounds();
 
-            allMarkers.forEach(function(marker) {
-                var isTypeMatch = activeTypes.indexOf(marker.category) > -1;
-                var isRegionMatch = activeRegions.indexOf(marker.region) > -1;
-                var isSearchMatch = !searchTerm || marker.getTitle().includes(searchTerm) || (marker.owner && marker.owner.includes(searchTerm));
+            var isAnyFilterActive = activeTypes.length > 0 || activeRegions.length > 0;
 
-                if (isTypeMatch && isRegionMatch && isSearchMatch) {
-                    marker.setMap(map);
-                    visibleMarkers.push(marker);
-                    bounds.extend(marker.getPosition());
-                    if(searchTerm) {
-                        listHTML += `<div class="result-item" onclick="focusMarker(${marker.idx})">
-                            <b>${marker.getTitle()}</b><br><small>${marker.owner || ''}</small></div>`;
+            allMarkers.forEach(function(marker) {
+                if (isAnyFilterActive) {
+                    var isTypeMatch = activeTypes.length === 0 || activeTypes.indexOf(marker.category) > -1;
+                    var isRegionMatch = activeRegions.length === 0 || activeRegions.indexOf(marker.region) > -1;
+                    var isSearchMatch = !searchTerm || marker.getTitle().includes(searchTerm) || (marker.owner && marker.owner.includes(searchTerm));
+
+                    if (isTypeMatch && isRegionMatch && isSearchMatch) {
+                        marker.setMap(map);
+                        visibleMarkers.push(marker);
+                        bounds.extend(marker.getPosition());
+                        if(searchTerm) {
+                            listHTML += `<div class="result-item" onclick="focusMarker(${marker.idx})">
+                                <b>${marker.getTitle()}</b><br><small>${marker.owner || ''}</small></div>`;
+                        }
+                    } else {
+                        marker.setMap(null);
                     }
                 } else {
-                    marker.setMap(null);
+                    marker.setMap(null); // 아무 필터도 활성화되지 않았으면 모두 숨김
                 }
             });
 
@@ -259,8 +271,8 @@
             
             document.querySelectorAll(containerId + ' .filter-btn').forEach(b => {
                 var val = b.getAttribute('data-val');
-                if(!val) {
-                    if(activeArray.length === fullList.length) b.classList.add('active');
+                if(!val) { // '전체/전국' 버튼
+                    if(activeArray.length === fullList.length && fullList.length > 0) b.classList.add('active');
                     else b.classList.remove('active');
                 } else {
                     if(activeArray.indexOf(val) > -1) b.classList.add('active');
