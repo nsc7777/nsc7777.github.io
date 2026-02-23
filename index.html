@@ -248,7 +248,7 @@
             });
     
             var sum = totals.solar + totals.wind + totals.ess;
-            document.getElementById('totalSumLabel').innerText = `전체 합계: ${sum.toFixed(2)} MW`;
+            document.getElementById('totalSumLabel').innerText = `전체 합계: ${sum / 1000).toFixed(2)} GW`;
     
             // 차트 데이터 업데이트
             myChart.data.datasets[0].data = [totals.solar, totals.wind, totals.ess];
