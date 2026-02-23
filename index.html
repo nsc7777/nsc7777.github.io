@@ -105,8 +105,12 @@
                     </div>
                 </div>
                 <div class="filter-group" id="chart-group">
-                    <div class="filter-label">에너지원별 용량 (MW)</div>
+                    <div class="filter-label">에너지원별 용량 (MW)</div> <div id="totalSumLabel" class="total-label">총 합계: 0.00 MW</div>
                     <div id="totalSumLabel" class="total-label">총 합계: 0.00 MW</div>
+                    <canvas id="capacityChart"></canvas>
+                <div class="filter-group" id="chart-group">
+                    <div class="filter-label">📊 포트폴리오 전체 용량 (MW)</div>
+                    <div id="totalSumLabel" class="total-label" style="color: #e67e22;">전체 합계: 0.00 MW</div>
                     <canvas id="capacityChart"></canvas>
                 </div>
             </div>
@@ -236,14 +240,22 @@
 
         function updateChart() {
             var totals = { solar: 0, wind: 0, ess: 0 };
+    
+            // 필터링과 상관없이 allMarkers 배열 전체를 순회합니다.
             allMarkers.forEach(m => {
-                if (m.getMap() && m.category !== 'substation') totals[m.category] += m.capValue;
+                // 변전소는 발전 용량이 없으므로 제외하고 태양광, 풍력, ESS만 합산합니다.
+                if (m.category !== 'substation') {
+                    totals[m.category] += m.capValue;
+                }
             });
-            document.getElementById('totalSumLabel').innerText = `총 합계: ${(totals.solar + totals.wind + totals.ess).toFixed(2)} MW`;
+    
+            var sum = totals.solar + totals.wind + totals.ess;
+            document.getElementById('totalSumLabel').innerText = `전체 합계: ${sum.toFixed(2)} MW`;
+    
+            // 차트 데이터 업데이트
             myChart.data.datasets[0].data = [totals.solar, totals.wind, totals.ess];
             myChart.update();
         }
-
         function initChart() {
             myChart = new Chart(document.getElementById('capacityChart').getContext('2d'), {
                 type: 'bar',
