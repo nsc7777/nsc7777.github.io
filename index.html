@@ -17,7 +17,6 @@
         .pw-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; font-size: 16px; text-align: center; }
         .pw-btn { background: #3498db; color: white; border: none; width: 100%; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
 
-        /* 대시보드 레이아웃 */
         #header { width: 100%; height: 60px; background-color: #2c3e50; color: white; display: flex; align-items: center; justify-content: center; z-index: 10; position: relative; }
         #map { width: 100%; height: calc(100% - 60px); position: relative; }
         .filter-container { position: absolute; top: 15px; left: 15px; z-index: 5; display: flex; flex-direction: column; gap: 8px; }
@@ -39,13 +38,12 @@
         .filter-btn { padding: 6px 10px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: all 0.2s; white-space: nowrap; }
         .filter-btn.active { background: #3498db !important; color: white !important; }
 
-        #chart-group { width: 220px; height: 320px; background: white; padding-top: 10px; padding-bottom: 50px; padding-left: 10px; padding-right: 10px; flex-direction: column; overflow: visible; }
-        .filter-label { font-size: 11px; margin-bottom: 2px !important; padding-bottom: 2px !important; }
+        /* 📊 차트 박스 크기 및 레이아웃 최적화 */
+        #chart-group { width: 210px; height: 260px; background: white; padding: 15px 10px 35px 10px; display: flex; flex-direction: column; overflow: visible; }
         .total-label { font-size: 11px; font-weight: bold; color: #e67e22; text-align: center; margin-bottom: 10px; }
-        .canvas#capacityChart { flex-grow: 1; width: 100% !important; height: auto !important; }
+        canvas#capacityChart { flex-grow: 1; width: 100% !important; height: auto !important; }
         .dotOverlay { position: relative; bottom: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 12px; padding: 5px; background: #fff; white-space: nowrap; }
 
-        /* 상세 정보창 */
         .info-content { padding: 12px; font-size: 13px; line-height: 1.5; min-width: 280px; }
         .info-title { font-weight: bold; border-bottom: 2px solid #3498db; margin-bottom: 8px; padding-bottom: 5px; color: #2c3e50; font-size: 14px; }
         .info-item { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dotted #eee; padding-bottom: 2px; }
@@ -108,7 +106,7 @@
                 </div>
                 <div class="filter-group" id="chart-group">
                     <div class="filter-label">📊 포트폴리오 용량 현황</div>
-                    <div id="totalSumLabel" class="total-label">전체 합계: 0.00 MW</div>
+                    <div id="totalSumLabel" class="total-label">전체 합계: 0.00 GW</div>
                     <canvas id="capacityChart"></canvas>
                 </div>
             </div>
@@ -119,8 +117,9 @@
         var correctPassword = "kchglobal"; 
         function checkPassword() {
             var input = document.getElementById('pw-input').value;
-            if (input === correctPassword) document.getElementById('password-overlay').style.display = 'none';
-            else alert("비밀번호가 일치하지 않습니다.");
+            if (input === correctPassword) {
+                document.getElementById('password-overlay').style.display = 'none';
+            } else { alert("비밀번호가 일치하지 않습니다."); }
         }
 
         var activeTypes = [], activeRegions = [], allMarkers = [];
@@ -153,22 +152,21 @@
 
             initChart();
 
-            // ⭐ 데이터 로드 및 마커 생성
             Promise.all([
                 fetch('data.json').then(res => res.json()).catch(() => []),
                 fetch('kepler.gl.json').then(res => res.json()).catch(() => ({}))
             ]).then(([genData, subData]) => {
-                // 🌪️ 아이콘 경로 안전하게 URL로 교체
                 var imgs = { 
                     solar: new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/1076/1076722.png', new kakao.maps.Size(32,32)),
-                    wind: new kakao.maps.MarkerImage('wind-farm_15840625.png', new kakao.maps.Size(32,32)),
+                    wind: new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/1452/1452441.png', new kakao.maps.Size(32,32)),
                     ess: new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/3103/3103446.png', new kakao.maps.Size(32,32)),
-                    substation: new kakao.maps.MarkerImage('factory_4883014.png', new kakao.maps.Size(32, 32))
+                    substation: new kakao.maps.MarkerImage('https://cdn-icons-png.flaticon.com/512/2913/2913564.png', new kakao.maps.Size(32,32))
                 };
 
                 var genMarkers = genData.map(item => {
-                    var m = new kakao.maps.Marker({ position: new kakao.maps.LatLng(item.lat, item.lng), image: imgs[item.type], title: item.title });
-                    m.category = item.type; m.region = item.region; m.owner = item.owner;
+                    var type = (item.type === 'bess' || item.type === 'ess') ? 'ess' : item.type;
+                    var m = new kakao.maps.Marker({ position: new kakao.maps.LatLng(item.lat, item.lng), image: imgs[type], title: item.title });
+                    m.category = type; m.region = item.region; m.owner = item.owner;
                     m.capValue = parseFloat(String(item.capacity).match(/(\d+(\.\d+)?)/)?.[1] || 0);
                     
                     var content = `<div class="info-content">
@@ -204,7 +202,6 @@
             });
         });
 
-        // 🔄 필터 토글
         function toggleFilter(type, val, btn) {
             var arr = (type === 'type') ? activeTypes : activeRegions;
             var idx = arr.indexOf(val);
@@ -212,7 +209,6 @@
             btn.classList.toggle('active'); updateMap();
         }
 
-        // 📊 [핵심 수정] 필터 및 표시 로직
         function updateMap() {
             clusterer.clear();
             var search = document.getElementById('searchInput').value.trim();
@@ -220,45 +216,43 @@
             var isAnyFilter = activeTypes.length > 0 || activeRegions.length > 0;
 
             allMarkers.forEach(m => {
-                // 종류 조건: 선택 안 됐으면 전체, 됐으면 포함 여부
                 var typeMatch = activeTypes.length === 0 || activeTypes.indexOf(m.category) > -1;
-                // 지역 조건: 선택 안 됐으면 전체, 됐으면 포함 여부 (변전소는 전국 취급)
                 var regionMatch = activeRegions.length === 0 || activeRegions.indexOf(m.region) > -1 || m.category === 'substation';
                 var searchMatch = !search || m.getTitle().includes(search) || (m.owner && m.owner.includes(search));
 
-                // 어떤 버튼이라도 하나만 눌리면 해당 조건에 맞는 것들 표시
                 if (isAnyFilter && typeMatch && regionMatch && searchMatch) {
                     m.setMap(map); visible.push(m);
-                } else {
-                    m.setMap(null);
-                }
+                } else { m.setMap(null); }
             });
             clusterer.addMarkers(visible); updateChart();
         }
 
+        // 📊 [수정됨] 단위를 MW에서 GW로 변환하는 합산 로직
         function updateChart() {
             var totals = { solar: 0, wind: 0, ess: 0 };
-    
-            // 필터링과 상관없이 allMarkers 배열 전체를 순회합니다.
             allMarkers.forEach(m => {
-                // 변전소는 발전 용량이 없으므로 제외하고 태양광, 풍력, ESS만 합산합니다.
-                if (m.category !== 'substation') {
-                    totals[m.category] += m.capValue;
-                }
+                if (m.category !== 'substation') { totals[m.category] += m.capValue; }
             });
-    
+            
             var sum = totals.solar + totals.wind + totals.ess;
-            document.getElementById('totalSumLabel').innerText = `전체 합계: ${sum.toFixed(2)} MW`;
-    
-            // 차트 데이터 업데이트
-            myChart.data.datasets[0].data = [totals.solar, totals.wind, totals.ess];
+            // GW 변환 및 표시 (1,000으로 나누기)
+            document.getElementById('totalSumLabel').innerText = `전체 합계: ${(sum / 1000).toFixed(2)} GW`;
+            
+            // 그래프 막대 수치도 GW 단위로 업데이트
+            myChart.data.datasets[0].data = [totals.solar / 1000, totals.wind / 1000, totals.ess / 1000];
             myChart.update();
         }
+
         function initChart() {
             myChart = new Chart(document.getElementById('capacityChart').getContext('2d'), {
                 type: 'bar',
                 data: { labels: ['태양광', '풍력', 'ESS'], datasets: [{ data:[0,0,0], backgroundColor: ['#ee6152', '#3498db', '#27ae60'] }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'GW', font: { size: 10 } } } }
+                }
             });
         }
 
